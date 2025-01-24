@@ -12,8 +12,8 @@ import Participants from "../screens/Participants";
 import EventSession from "../screens/EventSession";
 import SplashScreen from "../screens/SplashScreen";
 import { useAuthContext } from "../context/AuthContext";
-import ScannerProd from "../screens/ScannerProd";
-// import ScannerDev from "../screens/ScannerDev";
+// import ScannerProd from "../screens/ScannerProd";
+import ScannerDev from "../screens/ScannerDev";
 
 const Stack = createStackNavigator();
 
@@ -53,9 +53,9 @@ export default function MainNavigator() {
       ) : (
         <>
           <Stack.Screen name="Homepage" component={Homepage} />
-          {/* <Stack.Screen name="Scanner" component={ScannerDev} /> */}
+          <Stack.Screen name="Scanner" component={ScannerDev} />
           {/* Production scannes is under */}
-          <Stack.Screen name="Scanner" component={ScannerProd} />
+          {/* <Stack.Screen name="Scanner" component={ScannerProd} /> */}
           <Stack.Screen name="ScanResult" component={ScanResult} />
           <Stack.Screen name="Events" component={Events} />
           <Stack.Screen name="Participants" component={Participants} />
