@@ -6,11 +6,19 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "fonts": [
+      {
+        "asset": "./assets/fonts/Poppins-Regular.ttf",
+        "family": "Poppins-Regular"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-Bold.ttf",
+        "family": "Poppins-Bold"
+      }
+    ],
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+  
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +33,12 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.wa2goose.ExpoQR2"
+      "package": "com.wa2goose.ExpoQR2",
+      "config": {
+        "usesPermissionsFlags": {
+          "camera": true
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,7 +52,8 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-barcode-scanner"
     ],
     "extra": {
       "eas": {

@@ -1,6 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react/prop-types */
 import React, { createContext, useContext, useState } from "react";
-import { fetchUserDetails } from "../api/adminApi";
+// import { fetchUserDetails } from "../api/adminApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  fetchEventPartnerDetails,
+  fetchEventUserDetails,
+} from "../api/adminApi";
 
 export const AuthContext = createContext();
 export const useAuthContext = () => useContext(AuthContext);
@@ -12,24 +18,38 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [selectedEventPartner, setSelectedEventPartner] = useState(null);
   const [userType, setUserType] = useState("");
+  const [mainLoading, setmainLoading] = useState(false);
 
-  const fetchUser = async (userId) => {
-    setLoading(true);
+  const fetchUser = async () => {
+    setmainLoading(true);
     setError(null);
     try {
-      console.log("Calling fetchUser with userId:", userId);
-      const userData = await fetchUserDetails(userId);
-      console.log("Fetched user data in AuthContext:", userData);
-      setUser(userData);
+      const _id = await AsyncStorage.getItem("_id");
+      const role = await AsyncStorage.getItem("role");
+      setUserType(role)
+      const eventPartner = await AsyncStorage.getItem("selectedEventPartner");
+      if (role === "eventUser") {
+        const data = await fetchEventUserDetails(_id);
+        setSelectedEventPartner(eventPartner);
+        setUser(data._id);
+      }
+      
+      if (role === "eventPartner") {
+        const data = await fetchEventPartnerDetails(_id);
+        setUser(data._id);
+      }
     } catch (error) {
       console.error("Failed to fetch user details:", error);
       setError(error.message || "Failed to fetch user details.");
     } finally {
-      setLoading(false);
+      setmainLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await AsyncStorage.removeItem("_id");
+    await AsyncStorage.removeItem("role");
+    await AsyncStorage.removeItem("selectedEventPartner");
     setIsAuthenticated(false);
     setUser(null);
     setError(null);
@@ -42,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         isAuthenticated,
         loading,
+        setLoading,
         setUser,
         fetchUser,
         logout,
@@ -50,7 +71,9 @@ export const AuthProvider = ({ children }) => {
         selectedEventPartner,
         setSelectedEventPartner,
         userType,
-        setUserType
+        setUserType,
+        mainLoading,
+        setmainLoading
       }}
     >
       {children}

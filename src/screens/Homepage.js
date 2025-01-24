@@ -18,13 +18,12 @@ export default function Homepage() {
 
   const handleLogout = () => {
     logout();
-    navigation.navigate("AuthNavigator");
+    // navigation.navigate("AuthNavigator");
   };
 
   return (
     <TouchableWithoutFeedback>
       <View style={styles.container}>
-
         <View style={styles.header}>
           <Text style={styles.title}>Admin Dashboard</Text>
           <TouchableOpacity style={styles.profileIcon} onPress={handleLogout}>
@@ -35,7 +34,10 @@ export default function Homepage() {
         <View style={styles.mainContent}>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate("Events")}
+            onPress={() => {
+              console.log("Navigating to Events");
+              navigation.navigate("Events");
+            }}
           >
             <Icon name="event" size={48} color="#4CAF50" />
             <Text style={styles.cardText}>Events</Text>
@@ -43,7 +45,10 @@ export default function Homepage() {
 
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate("Participants")}
+            onPress={() => {
+              console.log("Navigating to Participants");
+              navigation.navigate("Participants");
+            }}
           >
             <Icon name="group" size={48} color="#FF9800" />
             <Text style={styles.cardText}>Participants</Text>
@@ -52,7 +57,10 @@ export default function Homepage() {
 
         <TouchableOpacity
           style={styles.scannerButton}
-          onPress={() => navigation.navigate("Scanner")}
+          onPress={() => {
+            console.log("Navigating to Scanner");
+            navigation.navigate("Scanner");
+          }}
         >
           <Text style={styles.scannerButtonText}>Open Scanner</Text>
         </TouchableOpacity>

@@ -1,11 +1,16 @@
 import axios from "axios";
 import Toast from "react-native-toast-message";
 import { API_BASE_URL } from "@env";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const fetchEventPartners = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/auth/list/eventpartner`);
-    console.log("Event partners fetched:", response.data);
+    console.log(
+      "Event partners fetched:",
+      response.data.map((partner) => partner.companyName)
+    );
+    
     return response.data;
   } catch (error) {
     console.error("Error fetching event partners:", error);
@@ -57,7 +62,8 @@ export const eventUserLogin = async (email, password, eventPartner) => {
       eventPartner,
     });
     console.log("Event User login response:", response.data);
-
+    await AsyncStorage.setItem("role","eventUser")
+    await AsyncStorage.setItem("selectedEventPartner",eventPartner)
     Toast.show({
       type: "success",
       text1: "Login Successful",

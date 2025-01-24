@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/prop-types */
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -10,20 +12,27 @@ import {
   Linking,
   Share,
   StatusBar,
+  Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
 import { fetchEventsByPartner } from "../api/eventApi";
-import placeholder from "../../assets/placeholder.png";
+import placeholder from "../../assets/placeholder.jpg";
+import { useNavigation } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
+
+const { width } = Dimensions.get('window');
 
 export default function Events() {
   const { user, userType, selectedEventPartner } = useAuthContext();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigation = useNavigation();
 
   const fetchEvents = async () => {
     setLoading(true);
+    console.log("TEST:", selectedEventPartner);
     const partnerId = userType === "eventUser" ? selectedEventPartner : user;
     try {
       const payload = {
@@ -38,6 +47,11 @@ export default function Events() {
     } catch (err) {
       setError("Failed to fetch events.");
       console.error("Error fetching events:", err);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to fetch events. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -48,24 +62,26 @@ export default function Events() {
   }, [user, userType, selectedEventPartner]);
 
   const formatDate = (date) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
+    if (!date) return "N/A";
+    const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(date).toLocaleDateString(undefined, options);
   };
 
   const formatTime = (date) => {
+    if (!date) return "N/A";
     const options = { hour: "2-digit", minute: "2-digit" };
     return new Date(date).toLocaleTimeString([], options);
   };
 
   const handleShare = async (event) => {
     try {
-      const message = `Check out this amazing event: ${event?.EventName}\n\n📅 Date: ${formatDate(
+      const message = `✨ **${event?.EventName}** ✨\n\n📅 **Date:** ${formatDate(
         event.StartDate
-      )}\n⏰ Time: ${formatTime(event?.StartDate)} - ${formatTime(
+      )}\n⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(
         event.EndDate
-      )}\n👥 Participants: ${event?.NoOfParticipants || 0}\n\n📍 Location: ${
+      )}\n👥 **Participants:** ${event?.NoOfParticipants || 0}\n\n📍 **Location:** ${
         event.EventLocation
-      }\n🗺️ Google Maps: ${event.googleMapLink}\n\nDon't miss out! Join us for this exciting event! #Events #Celebration`;
+      }\n🗺️ **Google Maps:** ${event.googleMapLink}\n\nDon't miss out! Join us for this exciting event! #Events #Celebration`;
 
       await Share.share({
         message,
@@ -73,6 +89,11 @@ export default function Events() {
       });
     } catch (error) {
       console.error("Error sharing event:", error);
+      Toast.show({
+        type: "error",
+        text1: "Share Failed",
+        text2: "Unable to share the event. Please try again.",
+      });
     }
   };
 
@@ -153,6 +174,12 @@ export default function Events() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A5276" />
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
         <Text style={styles.title}>Events</Text>
       </View>
 
@@ -179,6 +206,7 @@ export default function Events() {
           />
         )}
       </View>
+      <Toast />
     </View>
   );
 }
@@ -189,24 +217,31 @@ const styles = StyleSheet.create({
     backgroundColor: "#1A5276",
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 45,
     paddingBottom: 20,
     backgroundColor: "#1A5276",
   },
   title: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+  },
+  backButton: {
+    marginRight: 8,
   },
   content: {
     flex: 1,
     backgroundColor: "#F5F6FA",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    paddingTop: 20,
+    paddingTop: 10,
+    overflow: "hidden", 
   },
+  
   listContainer: {
     padding: 16,
   },
@@ -216,11 +251,11 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 8,
     overflow: "hidden",
   },
   separator: {
@@ -276,14 +311,19 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
   },
   infoContainer: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F0F4F8",
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 12,
   },
   infoText: {
@@ -311,6 +351,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     marginTop: 8,
+    transition: 'background-color 0.3s ease',   
   },
   shareButtonText: {
     color: "#FFFFFF",

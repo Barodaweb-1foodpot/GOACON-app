@@ -1,24 +1,67 @@
-import React from "react";
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable no-undef */
+/* eslint-disable react/jsx-no-undef */
+import React, { useEffect, useState } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
+import * as Font from "expo-font"; 
 import AuthNavigator from "./AuthNavigator";
 import Homepage from "../screens/Homepage";
-import Scanner from "../screens/Scanner";
 import ScanResult from "../screens/ScanResult";
 import Events from "../screens/Events";
 import Participants from "../screens/Participants";
-
+import EventSession from "../screens/EventSession";
+import SplashScreen from "../screens/SplashScreen";
+import { useAuthContext } from "../context/AuthContext";
+import ScannerProd from "../screens/ScannerProd";
+// import ScannerDev from "../screens/ScannerDev";
 
 const Stack = createStackNavigator();
 
 export default function MainNavigator() {
+  const { fetchUser, user, loading } = useAuthContext();
+
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        await Font.loadAsync({
+          Poppins: require("../../assets/fonts/Poppins-Regular.ttf"),
+          "Poppins-Bold": require("../../assets/fonts/Poppins-Bold.ttf"),
+        });
+        setFontsLoaded(true);
+
+        await fetchUser();
+      } catch (err) {
+        console.warn("Initialization error:", err);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  if (!fontsLoaded || loading) {
+    return <SplashScreen />;
+  }
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
-      <Stack.Screen name="Homepage" component={Homepage} />
-      <Stack.Screen name="Scanner" component={Scanner} />
-      <Stack.Screen name="ScanResult" component={ScanResult} />
-      <Stack.Screen name="Events" component={Events} />
-      <Stack.Screen name="Participants" component={Participants} />
+    <Stack.Navigator
+      screenOptions={{ headerShown: false, gestureEnabled: false }}
+    >
+      {!user ? (
+        <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
+      ) : (
+        <>
+          <Stack.Screen name="Homepage" component={Homepage} />
+          {/* <Stack.Screen name="Scanner" component={ScannerDev} /> */}
+          {/* Production scannes is under */}
+          <Stack.Screen name="Scanner" component={ScannerProd} />
+          <Stack.Screen name="ScanResult" component={ScanResult} />
+          <Stack.Screen name="Events" component={Events} />
+          <Stack.Screen name="Participants" component={Participants} />
+          <Stack.Screen name="EventSession" component={EventSession} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }

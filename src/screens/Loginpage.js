@@ -1,6 +1,6 @@
-/* eslint-disable no-redeclare */
+/* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,154 +12,131 @@ import {
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
-  FlatList,
-  Modal,
-  Pressable,
+  StatusBar,
+  ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
+import { Formik } from "formik";
+import * as Yup from "yup";
+import DropDownPicker from "react-native-dropdown-picker";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { AuthContext, useAuthContext } from "../context/AuthContext";
+
+import { useAuthContext } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
-import * as Font from "expo-font";
-import PoppinsRegular from "../../assets/fonts/Poppins-Regular.ttf";
-import PoppinsBold from "../../assets/fonts/Poppins-Bold.ttf";
-import logo from "../../assets/logo.png";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import {
   fetchEventPartners,
   eventPartnerLogin,
   eventUserLogin,
 } from "../api/adminApi";
 
+import logo from "../../assets/logo.png";
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [serverError, setServerError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  // Tracks whether the user is "eventPartner" or "eventUser"
   const [localUserType, setLocalUserType] = useState("eventPartner");
+
+  // For the dropdown when userType = "eventUser"
   const [eventPartners, setEventPartners] = useState([]);
-  const [localSelectedEventPartner, setLocalSelectedEventPartner] =
-    useState("");
-  const { setuser, setSelectedEventPartner, userType, setUserType } =
+  const [eventPartnersOpen, setEventPartnersOpen] = useState(false);
+
+  // For server-side errors
+  const [serverError, setServerError] = useState("");
+
+  // For password visibility
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Access Auth context
+  const { setUser, setSelectedEventPartner, setUserType, loading } =
     useAuthContext();
-  const [showPicker, setShowPicker] = useState(false);
-  const { setUser } = useAuthContext();
-  const { loading } = useContext(AuthContext);
+
+  // For navigation if needed
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const loadFonts = async () => {
-      try {
-        await Font.loadAsync({
-          Poppins: PoppinsRegular,
-          "Poppins-Bold": PoppinsBold,
-        });
-      } catch (error) {
-        console.error("Error loading fonts:", error);
-      }
-    };
-    loadFonts();
-  }, []);
+  // We use Formik's ref so we can manually reset the form whenever user type changes
+  const formikRef = useRef(null);
 
+  // Validation with Yup
+  const loginValidationSchema = Yup.object().shape({
+    email: Yup.string()
+      .email("Please enter a valid email")
+      .required("Email is required"),
+    password: Yup.string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
+    eventPartner:
+      localUserType === "eventUser"
+        ? Yup.string().required("Event Partner is required")
+        : Yup.string(),
+  });
+
+  // Whenever localUserType changes, fetch partners if needed, reset form, clear server error
   useEffect(() => {
     if (localUserType === "eventUser") {
       fetchPartners();
     }
-    resetFields();
+    // Reset the form when toggling user type
+    if (formikRef.current) {
+      formikRef.current.resetForm();
+    }
+    setServerError("");
   }, [localUserType]);
 
-  const resetFields = () => {
-    setEmail("");
-    setPassword("");
-    setEmailError("");
-    setPasswordError("");
-    setServerError("");
-    setLocalSelectedEventPartner("");
-  };
-
+  // Fetch event partners from the server
   const fetchPartners = async () => {
     try {
       const data = await fetchEventPartners();
-      setEventPartners(data || []);
+      const formatted = data.map((p) => ({
+        label: p.companyName,
+        value: p._id,
+      }));
+      setEventPartners(formatted);
     } catch (error) {
       console.error("Error fetching event partners:", error);
     }
   };
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleLogin = async () => {
-    let isValid = true;
-
-    if (!email) {
-      setEmailError("Email is required");
-      isValid = false;
-    } else if (!validateEmail(email)) {
-      setEmailError("Please enter a valid email");
-      isValid = false;
-    } else {
-      setEmailError("");
-    }
-
-    if (!password) {
-      setPasswordError("Password is required");
-      isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
-      isValid = false;
-    } else {
-      setPasswordError("");
-    }
-
-    if (!isValid) return;
-
+  // Submit handler
+  const handleLogin = async (values, { setSubmitting }) => {
+    setServerError("");
     try {
       if (localUserType === "eventPartner") {
-        const response = await eventPartnerLogin(email, password);
+        // Event Partner login
+        const response = await eventPartnerLogin(values.email, values.password);
         if (response.isOk) {
-          console.log("Event Partner ID:", response.data.eventPartner._id);
+          await AsyncStorage.setItem("_id", response.data.eventPartner._id);
+          await AsyncStorage.setItem("role", "eventPartner");
+
           setUser(response.data.eventPartner._id);
-          setSelectedEventPartner(null);
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Homepage" }],
-          });
+          setSelectedEventPartner(response.data.eventPartner._id);
+          setUserType("eventPartner");
         } else {
           setServerError("Invalid email or password");
         }
-      } else if (localUserType === "eventUser") {
-        if (!localSelectedEventPartner) {
-          setServerError("Please select an Event Partner");
-          return;
-        }
-
+      } else {
+        // Event User login
         const response = await eventUserLogin(
-          email,
-          password,
-          localSelectedEventPartner
+          values.email,
+          values.password,
+          values.eventPartner
         );
         if (response.isOk) {
-          console.log("Event User ID:", response.data.user._id);
+          await AsyncStorage.setItem("_id", response.data.user._id);
+          await AsyncStorage.setItem("role", "eventUser");
+
           setUser(response.data.user._id);
-          setSelectedEventPartner(localSelectedEventPartner);
-          setUserType(localUserType);
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Homepage" }],
-          });
+          setSelectedEventPartner(values.eventPartner);
+          setUserType("eventUser");
         } else {
           setServerError("Invalid email or password");
         }
       }
-    } catch (error) {
-      console.error("Error during login:", error);
+    } catch (err) {
+      console.error("Login error:", err);
       setServerError("Login failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -168,25 +145,32 @@ export default function LoginPage() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={styles.topBackground}>
-            <TouchableOpacity style={styles.backArrow}>
-              <AntDesign name="left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+      {/* Adjust status bar color for better UI */}
+      <StatusBar barStyle="light-content" backgroundColor="#154360" />
 
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Top Logo Section */}
+          <View style={styles.topBackground}>
             <View style={styles.logoContainer}>
               <Image source={logo} style={styles.logo} />
             </View>
           </View>
 
+          {/* Form Container */}
           <View style={styles.formContainer}>
             <Text style={styles.welcomeText}>Welcome Back.</Text>
 
+            {/* Toggle User Type Buttons */}
             <View style={styles.radioContainer}>
               <TouchableOpacity
                 style={styles.radioButton}
-                onPress={() => setLocalUserType("eventPartner")}
+                onPress={() => {
+                  setLocalUserType("eventPartner");
+                }}
               >
                 <View
                   style={[
@@ -200,167 +184,171 @@ export default function LoginPage() {
 
               <TouchableOpacity
                 style={styles.radioButton}
-                onPress={() => setLocalUserType("eventUser")}
+                onPress={() => {
+                  setLocalUserType("eventUser");
+                }}
               >
                 <View
                   style={[
                     styles.radioCircle,
-                    localUserType === "eventUser" && styles.radioCircleSelected,
+                    localUserType === "eventUser" &&
+                      styles.radioCircleSelected,
                   ]}
                 />
                 <Text style={styles.radioText}>Event User</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>
-                User name/Email ID <Text style={styles.asterisk}>*</Text>
-              </Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  placeholder="Enter your email"
-                  style={styles.input}
-                  placeholderTextColor="#aaa"
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    setEmailError("");
-                    setServerError("");
-                  }}
-                />
-              </View>
-              {emailError ? (
-                <Text style={styles.errorText}>{emailError}</Text>
-              ) : null}
-
-              <Text style={styles.label}>
-                Password <Text style={styles.asterisk}>*</Text>
-              </Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  placeholder="Enter your password"
-                  style={styles.input}
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor="#aaa"
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setPasswordError("");
-                    setServerError("");
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Icon
-                    name={showPassword ? "visibility" : "visibility-off"}
-                    size={20}
-                    color="#000"
-                  />
-                </TouchableOpacity>
-              </View>
-              {passwordError ? (
-                <Text style={styles.errorText}>{passwordError}</Text>
-              ) : null}
-              {serverError ? (
-                <Text style={styles.errorText}>{serverError}</Text>
-              ) : null}
-            </View>
-
-            {localUserType === "eventUser" && (
-              <>
-                <View style={styles.dropdownContainer}>
-                  <Text style={styles.label}>Select Event Partner</Text>
-                  <Pressable
-                    style={styles.dropdown}
-                    onPress={() => setShowPicker(true)}
-                  >
-                    <Text style={styles.dropdownText}>
-                      {localSelectedEventPartner
-                        ? eventPartners.find(
-                            (partner) =>
-                              partner._id === localSelectedEventPartner
-                          )?.companyName || "Select Event Partner"
-                        : "Select Event Partner"}
+            <Formik
+              innerRef={formikRef}
+              initialValues={{
+                email: "",
+                password: "",
+                eventPartner: "",
+              }}
+              validationSchema={loginValidationSchema}
+              onSubmit={handleLogin}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+                isSubmitting,
+                setFieldValue,
+              }) => (
+                <View style={styles.formikContainer}>
+                  {/* Email Field */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>
+                      User name/Email ID <Text style={styles.asterisk}>*</Text>
                     </Text>
-                    <Icon name="arrow-drop-down" size={24} color="#000" />
-                  </Pressable>
-                </View>
-
-                <Modal visible={showPicker} transparent>
-                  <View style={styles.modal}>
-                    <View style={styles.modalContent}>
-                      <FlatList
-                        data={eventPartners}
-                        keyExtractor={(item) => item._id}
-                        renderItem={({ item }) => (
-                          <TouchableOpacity
-                            style={styles.pickerItem}
-                            onPress={() => {
-                              setLocalSelectedEventPartner(item._id);
-                              setShowPicker(false);
-                            }}
-                          >
-                            <Text style={styles.pickerItemText}>
-                              {item.companyName}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
+                    <View style={styles.inputWrapper}>
+                      <TextInput
+                        placeholder="Enter your email"
+                        style={styles.input}
+                        placeholderTextColor="#aaa"
+                        onChangeText={handleChange("email")}
+                        onBlur={handleBlur("email")}
+                        value={values.email}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
                       />
+                    </View>
+                    {errors.email && touched.email && (
+                      <Text style={styles.errorText}>{errors.email}</Text>
+                    )}
+
+                    {/* Password Field */}
+                    <Text style={styles.label}>
+                      Password <Text style={styles.asterisk}>*</Text>
+                    </Text>
+                    <View style={styles.inputWrapper}>
+                      <TextInput
+                        placeholder="Enter your password"
+                        style={styles.input}
+                        placeholderTextColor="#aaa"
+                        secureTextEntry={!showPassword}
+                        onChangeText={handleChange("password")}
+                        onBlur={handleBlur("password")}
+                        value={values.password}
+                      />
+                      {/* Toggle Icon for Show/Hide Password */}
                       <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={() => setShowPicker(false)}
+                        onPress={() => setShowPassword(!showPassword)}
                       >
-                        <Text style={styles.closeButtonText}>Close</Text>
+                        <Icon
+                          name={showPassword ? "visibility" : "visibility-off"}
+                          size={20}
+                          color="#000"
+                        />
                       </TouchableOpacity>
                     </View>
+                    {errors.password && touched.password && (
+                      <Text style={styles.errorText}>{errors.password}</Text>
+                    )}
                   </View>
-                </Modal>
-              </>
-            )}
 
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.loginButtonText}>Login</Text>
+                  {/* DropDownPicker for Event User */}
+                  {localUserType === "eventUser" && (
+                    <View style={styles.dropdownContainer}>
+                      <Text style={styles.label}>
+                        Select Event Partner{" "}
+                        <Text style={styles.asterisk}>*</Text>
+                      </Text>
+                      <DropDownPicker
+                        open={eventPartnersOpen}
+                        value={values.eventPartner}
+                        items={eventPartners}
+                        setOpen={setEventPartnersOpen}
+                        setValue={(cb) => {
+                          const val = cb(values.eventPartner);
+                          setFieldValue("eventPartner", val);
+                        }}
+                        placeholder="Select Event Partner"
+                        style={styles.dropdown}
+                        dropDownContainerStyle={styles.dropdownList}
+                        listMode="SCROLLVIEW"
+                        zIndex={3000}
+                        zIndexInverse={1000}
+                      />
+                      {errors.eventPartner && touched.eventPartner && (
+                        <Text style={styles.errorText}>
+                          {errors.eventPartner}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Server Error */}
+                  {serverError ? (
+                    <Text style={styles.serverErrorText}>{serverError}</Text>
+                  ) : null}
+
+                  {/* Login Button */}
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting || loading}
+                  >
+                    {isSubmitting || loading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.loginButtonText}>Login</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               )}
-            </TouchableOpacity>
+            </Formik>
           </View>
-        </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
 
+// -----------------
+// STYLES
+// -----------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#1A5276",
   },
+  scrollContainer: {
+    flexGrow: 1,
+  },
   topBackground: {
-    height: "40%",
+    height: 250,
     backgroundColor: "#154360",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
-  },
-  backArrow: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 10,
   },
   logoContainer: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+    width: 300,
+    height: 200,
   },
   logo: {
     width: "100%",
@@ -372,7 +360,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F4F4",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     marginTop: -30,
   },
   welcomeText: {
@@ -381,42 +370,6 @@ const styles = StyleSheet.create({
     color: "#154360",
     textAlign: "center",
     marginBottom: 20,
-  },
-  inputContainer: {
-    width: "100%",
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 16,
-    color: "#000",
-    marginBottom: 5,
-    fontFamily: "Poppins",
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#B3B6B7",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    backgroundColor: "#fff",
-    marginBottom: 5,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: "Poppins",
-    color: "#000",
-    paddingVertical: 12,
-  },
-  eyeIcon: {
-    padding: 5,
-  },
-  errorText: {
-    color: "red",
-    fontSize: 12,
-    marginBottom: 10,
-    fontFamily: "Poppins",
   },
   radioContainer: {
     flexDirection: "row",
@@ -435,8 +388,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#154360",
     marginRight: 10,
-    alignItems: "center",
-    justifyContent: "center",
   },
   radioCircleSelected: {
     backgroundColor: "#154360",
@@ -446,76 +397,74 @@ const styles = StyleSheet.create({
     color: "#154360",
     fontFamily: "Poppins",
   },
-  dropdownContainer: {
-    width: "100%",
-    marginVertical: 15,
+  formikContainer: {
+    marginTop: 10,
   },
-  dropdown: {
+  inputContainer: {
+    width: "100%",
+  },
+  label: {
+    fontSize: 16,
+    color: "#000",
+    marginBottom: 5,
+    fontFamily: "Poppins",
+  },
+  asterisk: {
+    color: "red",
+  },
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#B3B6B7",
     borderRadius: 10,
-    backgroundColor: "#fff",
     paddingHorizontal: 15,
+    backgroundColor: "#fff",
+    marginBottom: 10,
     justifyContent: "space-between",
   },
-  dropdownText: {
-    fontSize: 16,
-    color: "#000",
-    fontFamily: "Poppins",
-  },
-  modal: {
+  input: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    fontSize: 16,
+    fontFamily: "Poppins",
+    color: "#000",
+    paddingVertical: 12,
+    marginRight: 5,
   },
-  modalContent: {
-    width: "80%",
-    backgroundColor: "#fff",
+  dropdownContainer: {
+    marginVertical: 10,
+    zIndex: 2000, // Ensure dropdown is on top
+  },
+  dropdown: {
+    borderColor: "#B3B6B7",
     borderRadius: 10,
-    padding: 20,
-    alignItems: "center",
   },
-  pickerItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    width: "100%",
-    alignItems: "center",
+  dropdownList: {
+    borderColor: "#B3B6B7",
   },
-  pickerItemText: {
-    fontSize: 16,
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginBottom: 10,
     fontFamily: "Poppins",
-    color: "#154360",
   },
-  closeButton: {
-    marginTop: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#154360",
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: "#fff",
+  serverErrorText: {
+    color: "red",
+    fontSize: 14,
+    textAlign: "center",
+    marginVertical: 10,
     fontFamily: "Poppins",
-    fontSize: 16,
   },
   loginButton: {
     backgroundColor: "#154360",
     borderRadius: 10,
     paddingVertical: 15,
-    paddingHorizontal: 60,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
   loginButtonText: {
     color: "#fff",
     fontSize: 18,
     fontFamily: "Poppins-Bold",
-  },
-  asterisk: {
-    color: "red",
   },
 });

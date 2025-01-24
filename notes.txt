@@ -1,0 +1,2 @@
+Event Sessions:
+${session.EventSession?.city ? `, ${session.EventSession.city}` : '' }${session.EventSession?.state ? `, ${session.EventSession.state}` : ''}
