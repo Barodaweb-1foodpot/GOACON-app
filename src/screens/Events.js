@@ -75,14 +75,19 @@ export default function Events() {
 
   const handleShare = async (event) => {
     try {
-      const message = `✨ **${event?.EventName}** ✨\n\n📅 **Date:** ${formatDate(
-        event.StartDate
-      )}\n⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(
-        event.EndDate
-      )}\n👥 **Participants:** ${event?.NoOfParticipants || 0}\n\n📍 **Location:** ${
-        event.EventLocation
-      }\n🗺️ **Google Maps:** ${event.googleMapLink}\n\nDon't miss out! Join us for this exciting event! #Events #Celebration`;
-
+      const message = `✨ **${event?.EventName}** ✨
+  
+  📅 **Date:** ${formatDate(event.StartDate)}
+  ⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(event.EndDate)}
+  👥 **Participants:** ${event?.NoOfParticipants || 0}
+  
+  📍 **Location:** ${event.EventLocation}
+  🗺️ **Google Maps:** ${event.googleMapLink}
+  
+  Don't miss out! Join us for this exciting event! #Events #Celebration
+  
+  🔗 **To register for this event:** https://participant.bwebevents.com/register`;
+  
       await Share.share({
         message,
         title: event.EventName,

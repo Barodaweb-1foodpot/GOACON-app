@@ -29,7 +29,7 @@ export const fetchParticipants = async (payload) => {
     const perPage =
       payload.per_page === "total"
         ? 10000 
-        : Math.min(Math.max(10, payload.per_page), 100); 
+        : Math.min(Math.max(10, payload.per_page), 1000); 
 
     const requestPayload = {
       ...payload,

@@ -13,7 +13,6 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -23,7 +22,6 @@ import {
   markSessionScanned,
 } from "../api/eventApi";
 import { StatusBar } from "expo-status-bar";
-import successAnimation from "../../assets/animations/success-tick.json";
 
 export default function ScanResult({ route }) {
   const navigation = useNavigation();
@@ -320,12 +318,12 @@ export default function ScanResult({ route }) {
             {!eventDetails?.isScanned && !showSessions && (
               <View style={styles.centerContent}>
                 {showAnimation ? (
-                  <LottieView
-                    source={successAnimation}
-                    autoPlay
-                    loop={false}
-                    style={styles.animation}
-                  />
+                  <View style={styles.successContainer}>
+                    <Icon name="check-circle" size={100} color="#28A745" />
+                    <Text style={styles.successText}>
+                      Participant entered successfully
+                    </Text>
+                  </View>
                 ) : (
                   <TouchableOpacity
                     style={styles.enterButton}
@@ -538,9 +536,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginVertical: 20,
   },
-  animation: {
-    width: 200,
-    height: 200,
+  successContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+  },
+  successText: {
+    color: "#28A745",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 10,
   },
   enterButton: {
     backgroundColor: "#28A745",
