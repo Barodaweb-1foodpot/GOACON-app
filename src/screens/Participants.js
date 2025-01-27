@@ -55,11 +55,11 @@ export default function Participants() {
   const pageSizeOptions = [
     { label: "20 per page", value: 20 },
     { label: "50 per page", value: 50 },
-    { label: "All", value: "total" },  
+    { label: "All", value: "total" },
   ];
 
-  const [loadingMore, setLoadingMore] = useState(false);
   const [noMoreData, setNoMoreData] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1); // Added currentPage state
 
   const entryTypes = [
     { label: "All", value: null },
@@ -77,9 +77,11 @@ export default function Participants() {
   }, []);
 
   useEffect(() => {
+    // Reset to first page when filters or search query change
+    setCurrentPage(1);
     if (eventValue) {
       fetchCounts();
-      fetchParticipantsList();
+      fetchParticipantsList(1, true); // Fetch first page and reset participants
     } else {
       // If no event is selected, clear counts and participants
       setTotalCount(0);
@@ -143,17 +145,16 @@ export default function Participants() {
     }
   };
 
-  const fetchParticipantsList = async () => {
+  const fetchParticipantsList = async (page = 1, reset = false) => {
     if (!eventValue) return; // Do not fetch if no event is selected
 
     setLoading(true);
-    setNoMoreData(false);
     try {
       const currentPageSize = pageSize === "total" ? 10000 : pageSize; // Assuming 10000 as a large number for "All"
 
       const payload = {
-        skip: 0,
-        per_page: currentPageSize,
+        skip: (page - 1) * (currentPageSize === "total" ? 10000 : currentPageSize),
+        per_page: currentPageSize === "total" ? 10000 : currentPageSize,
         match: searchQuery,
         IsActive: true,
         eventPartner: partnerId,
@@ -167,14 +168,20 @@ export default function Participants() {
       }
 
       const response = await fetchParticipants(payload);
-      setParticipants(response.data);
 
-      if (pageSize !== "total" && response.data.length < pageSize) {
-        setNoMoreData(true);
+      if (reset) {
+        setParticipants(response.data);
+      } else {
+        setParticipants((prev) => [...prev, ...response.data]);
       }
 
-      if (pageSize === "total" && response.data.length < 10000) {
+      // Determine if there's more data to load
+      if (pageSize !== "total" && (page * pageSize) >= totalCount) {
         setNoMoreData(true);
+      } else if (pageSize === "total" && response.data.length < 10000) {
+        setNoMoreData(true);
+      } else {
+        setNoMoreData(false);
       }
     } catch (error) {
       console.error("Error fetching participants:", error);
@@ -184,42 +191,12 @@ export default function Participants() {
     }
   };
 
-  const loadMoreParticipants = async () => {
-    if (loadingMore || noMoreData || pageSize !== "total") return;
+  const loadNextPage = async () => {
+    if (noMoreData || pageSize === "total") return;
 
-    if (participants.length >= totalCount) {
-      setNoMoreData(true);
-      return;
-    }
-
-    setLoadingMore(true);
-    try {
-      const payload = {
-        skip: participants.length,
-        per_page: 50,
-        match: searchQuery,
-        IsActive: true,
-        eventPartner: partnerId,
-      };
-      if (eventValue) {
-        payload.EventName = eventValue;
-      }
-      if (entryValue !== null) {
-        payload.isScanned = entryValue;
-      }
-
-      const response = await fetchParticipants(payload);
-
-      setParticipants((prev) => [...prev, ...response.data]);
-      if (response.data.length < 50) {
-        setNoMoreData(true);
-      }
-    } catch (error) {
-      console.error("Error loading more participants:", error);
-      Alert.alert("Error", "Failed to load more participants.");
-    } finally {
-      setLoadingMore(false);
-    }
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    await fetchParticipantsList(nextPage);
   };
 
   const handleScanStatusUpdate = useCallback(
@@ -286,7 +263,8 @@ export default function Participants() {
   const onRefresh = async () => {
     if (!eventValue) return;
     setRefreshing(true);
-    await Promise.all([fetchParticipantsList(), fetchCounts()]);
+    setCurrentPage(1);
+    await Promise.all([fetchParticipantsList(1, true), fetchCounts()]);
     setRefreshing(false);
   };
 
@@ -332,10 +310,31 @@ export default function Participants() {
   );
 
   const renderFooter = () => {
-    if (!loadingMore) return null;
+    if (pageSize === "total") return null;
+
+    if (noMoreData) {
+      return (
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerText}>No more participants to load</Text>
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#1A5276" />
+      <View style={styles.footerContainer}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#1A5276" />
+        ) : (
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={loadNextPage}
+            disabled={loading || noMoreData}
+            accessible={true}
+            accessibilityLabel="Load next set of participants"
+          >
+            <Text style={styles.nextButtonText}>View more</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -451,7 +450,7 @@ export default function Participants() {
                       color="#4CAF50"
                     />
                     <CountCard
-                      title="Not Scanned"
+                      title="Not Scan"
                       count={notScannedCount}
                       color="#FFA000"
                     />
@@ -501,7 +500,7 @@ export default function Participants() {
                   Please select an event to view participants
                 </Text>
               </View>
-            ) : loading ? (
+            ) : loading && currentPage === 1 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#1A5276" />
                 <Text style={styles.loadingText}>Loading participants...</Text>
@@ -526,11 +525,6 @@ export default function Participants() {
                   styles.listContainer,
                   { flexGrow: 1 }, // Ensure content grows to fill available space
                 ]}
-                // Infinite scroll only if "All" is selected
-                onEndReached={
-                  pageSize === "total" ? loadMoreParticipants : null
-                }
-                onEndReachedThreshold={0.5}
                 ListFooterComponent={renderFooter}
                 // Performance + Smooth Scrolling
                 initialNumToRender={8}
@@ -888,5 +882,25 @@ const styles = StyleSheet.create({
     color: "#1A5276",
     textAlign: "center",
     paddingHorizontal: 20,
+  },
+  footerContainer: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#666",
+    fontFamily: "Poppins-Regular",
+  },
+  nextButton: {
+    backgroundColor: "#1A5276",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  nextButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
   },
 });

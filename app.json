@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "eventPartner_app",
+    "name": "Bweb1Events",
     "slug": "eventPartner_app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
+    "backgroundColor":"#000",
     "newArchEnabled": false,
     "fonts": [
       {

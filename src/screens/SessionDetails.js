@@ -336,7 +336,7 @@ export default function SessionDetails() {
                     color="#4CAF50"
                   />
                   <CountCard
-                    title="Not Scanned"
+                    title="Not Scan"
                     count={notScannedParticipants}
                     color="#FFA000"
                   />
