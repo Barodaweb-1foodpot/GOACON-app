@@ -1,5 +1,3 @@
-// SessionDetails.js
-
 /* eslint-disable react/jsx-no-duplicate-props */
 /* eslint-disable react/display-name */
 /* eslint-disable react/prop-types */
@@ -17,13 +15,28 @@ import {
   Platform,
   TextInput,
   FlatList,
+  LayoutAnimation,
+  UIManager,
+  Animated,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
-import { fetchEventsByPartner, fetchSessionsByEvent, fetchParticipantCounts } from "../api/sessionApi";
+import {
+  fetchEventsByPartner,
+  fetchSessionsByEvent,
+  fetchParticipantCounts,
+} from "../api/sessionApi";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+
+// Enable LayoutAnimation on Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function SessionDetails() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -200,6 +213,16 @@ export default function SessionDetails() {
     session.sessionName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Function to handle session card press with toggle functionality
+  const handleSessionPress = (sessionId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (sessionValue === sessionId) {
+      setSessionValue(null);
+    } else {
+      setSessionValue(sessionId);
+    }
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
@@ -363,13 +386,36 @@ export default function SessionDetails() {
                       styles.sessionCard,
                       sessionValue === item._id && styles.selectedSessionCard,
                     ]}
-                    onPress={() => setSessionValue(item._id)}
+                    onPress={() => handleSessionPress(item._id)}
+                    activeOpacity={0.8}
                     accessible={true}
-                    accessibilityLabel={`Select session ${item.sessionName}`}
+                    accessibilityLabel={`Toggle session ${item.sessionName}`}
                   >
                     <View style={styles.cardHeader}>
                       <Text style={styles.sessionName}>{item.sessionName}</Text>
+                      <Icon
+                        name={
+                          sessionValue === item._id
+                            ? "keyboard-arrow-up"
+                            : "keyboard-arrow-down"
+                        }
+                        size={24}
+                        color="#1A5276"
+                      />
                     </View>
+                    {/* Expanded Details */}
+                    {sessionValue === item._id && (
+                      <View style={styles.expandedDetails}>
+                        <Text style={styles.detailLabel}>Start Time:</Text>
+                        <Text style={styles.detailText}>
+                          {new Date(item.startTime).toLocaleString()}
+                        </Text>
+                        <Text style={styles.detailLabel}>Location:</Text>
+                        <Text style={styles.detailText}>
+                          {item.sessionLocation}
+                        </Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
@@ -381,16 +427,21 @@ export default function SessionDetails() {
                 contentContainerStyle={styles.listContentContainer}
                 // Handle potential scrollToIndex errors
                 onScrollToIndexFailed={(info) => {
-                  const wait = new Promise((resolve) => setTimeout(resolve, 500));
+                  const wait = new Promise((resolve) =>
+                    setTimeout(resolve, 500)
+                  );
                   wait.then(() => {
-                    flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                    flatListRef.current?.scrollToIndex({
+                      index: info.index,
+                      animated: true,
+                    });
                   });
                 }}
               />
             ) : (
               <View style={styles.infoContainer}>
                 <Text style={styles.infoText}>
-                  Please select an event to view sessions.
+                  Please select filters to view sessions.
                 </Text>
               </View>
             )}
@@ -528,8 +579,8 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
     borderLeftWidth: 4,
     borderLeftColor: "#FFA000",
   },
@@ -547,6 +598,24 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
     color: "#2C3E50",
     flex: 1,
+  },
+  expandedDetails: {
+    marginTop: 10,
+    backgroundColor: "#F0F8FF",
+    borderRadius: 8,
+    padding: 10,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: "#1A5276",
+    marginTop: 5,
+  },
+  detailText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    color: "#555555",
+    marginTop: 2,
   },
   listContentContainer: {
     paddingBottom: 20,

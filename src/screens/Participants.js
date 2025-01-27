@@ -497,7 +497,7 @@ export default function Participants() {
               <View style={styles.initialPromptContainer}>
                 <Icon name="event-note" size={60} color="#1A5276" />
                 <Text style={styles.initialPromptText}>
-                  Please select an event to view participants
+                  Please select an filters to view participants
                 </Text>
               </View>
             ) : loading && currentPage === 1 ? (
