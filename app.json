@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Bweb1Events",
+    "name": "BwebEvents",
     "slug": "eventPartner_app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "light",
     "backgroundColor":"#000",
     "newArchEnabled": false,
@@ -27,7 +27,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/app_icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
