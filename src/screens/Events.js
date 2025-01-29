@@ -578,11 +578,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
   },
-  // Enhanced Modal Styles
+  
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end', // Makes modal slide up from bottom
+    justifyContent: 'flex-end', 
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
@@ -603,9 +603,9 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', // Center the title
+    justifyContent: 'center',
     marginBottom: 20,
-    position: 'relative', // To position the close button
+    position: 'relative', 
   },
   modalTitle: {
     fontSize: 24,
@@ -616,15 +616,15 @@ const styles = StyleSheet.create({
   },
   modalCloseIcon: {
     position: 'absolute',
-    right: 0,
-    top: 0,
+    right: -10,
+    top: 30,
     padding: 5,
   },
   modalScrollView: {
     flex: 1,
   },
   modalScrollContent: {
-    paddingBottom: 20, // Ensure content is scrollable above action buttons
+    paddingBottom: 20, 
   },
   modalImageContainer: {
     height: 200,
