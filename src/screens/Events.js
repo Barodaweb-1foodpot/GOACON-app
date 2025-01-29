@@ -262,7 +262,12 @@ Don't miss out! Join us for this exciting event! #Events #Celebration
                 </TouchableOpacity>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView
+                style={styles.modalScrollView}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+                contentContainerStyle={styles.modalScrollContent}
+              >
                 {/* Event Image */}
                 <View style={styles.modalImageContainer}>
                   <Image
@@ -593,12 +598,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 15,
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center', // Center the title
     marginBottom: 20,
+    position: 'relative', // To position the close button
   },
   modalTitle: {
     fontSize: 24,
@@ -608,10 +615,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalCloseIcon: {
-    marginTop: 0,
-    paddingLeft: 5,
     position: 'absolute',
     right: 0,
+    top: 0,
+    padding: 5,
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 20, // Ensure content is scrollable above action buttons
   },
   modalImageContainer: {
     height: 200,

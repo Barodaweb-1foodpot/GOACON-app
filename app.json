@@ -19,7 +19,9 @@
       }
     ],
     "splash": {
-  
+      "image":"./assets/logo.png",
+      "resizeMode":"contain",
+      "backgroundColor":"#ffffff"
     },
     "ios": {
       "supportsTablet": true,

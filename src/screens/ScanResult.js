@@ -183,8 +183,8 @@ export default function ScanResult({ route }) {
           color="#666666"
           style={styles.iconStyle}
         />
-        <Text style={styles.ticketCategory}>
-          {eventDetails?.ticketCategory || "N/A"}
+        <Text style={styles.designation}>
+          {eventDetails?.designation || "N/A"}
         </Text>
       </View>
       <View style={styles.locationContainer}>
@@ -212,7 +212,13 @@ export default function ScanResult({ route }) {
     );
 
     if (!availableSessions || availableSessions.length === 0) {
-      return null;
+      return (
+        <View style={styles.noSessionsContainer}>
+          <Text style={styles.noSessionsText}>
+            Currently no active sessions available
+          </Text>
+        </View>
+      );
     }
 
     return (
@@ -247,7 +253,7 @@ export default function ScanResult({ route }) {
                         )}`}
                       </Text>
                     </View>
-                    <View style={styles.locationContainer}>
+                    <View style={styles.locationContainerSession}>
                       <Icon name="room" size={16} color="#666666" />
                       <Text style={styles.sessionLocation}>
                         {`${session.EventSession?.sessionLocation || "N/A"}`}
@@ -432,7 +438,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginRight: 12,
   },
-  ticketCategory: {
+  designation: {
     fontSize: 14,
     color: "#666666",
     marginLeft: 6,
@@ -451,11 +457,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
-  },
-  registrationDate: {
-    fontSize: 14,
-    color: "#666666",
-    marginLeft: 8,
   },
 
   sessionsContainer: {
@@ -611,5 +612,16 @@ const styles = StyleSheet.create({
   },
   iconStyle: {
     marginRight: 6,
+  },
+  // New Styles for No Sessions Message
+  noSessionsContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+  },
+  noSessionsText: {
+    fontSize: 16,
+    color: "#666666",
+    fontFamily: "Poppins-Regular",
   },
 });

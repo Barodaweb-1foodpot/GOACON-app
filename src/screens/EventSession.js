@@ -138,8 +138,8 @@ export default function EventSession({ route, navigation }) {
           color="#666666"
           style={styles.iconStyle}
         />
-        <Text style={styles.ticketCategory}>
-          {eventDetails?.ticketCategory || "N/A"}
+        <Text style={styles.designation}>
+          {eventDetails?.designation || "N/A"}
         </Text>
       </View>
       <Text style={styles.eventDate}>
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginRight: 12,
   },
-  ticketCategory: {
+  designation: {
     fontSize: 14,
     color: "#666666",
   },
