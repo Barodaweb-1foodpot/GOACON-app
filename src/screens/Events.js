@@ -15,15 +15,16 @@ import {
   Dimensions,
   Modal,
   ScrollView,
+  TouchableWithoutFeedback,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
 import { fetchEventsByPartner } from "../api/eventApi";
 import placeholder from "../../assets/placeholder.jpg";
-import { useNavigation } from '@react-navigation/native';
-import Toast from 'react-native-toast-message';
+import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function Events() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -50,6 +51,7 @@ export default function Events() {
       };
       const response = await fetchEventsByPartner(payload);
       setEvents(response || []);
+      console.log("Events fetched successfully:", response);
     } catch (err) {
       setError("Failed to fetch events.");
       console.error("Error fetching events:", err);
@@ -114,89 +116,127 @@ Don't miss out! Join us for this exciting event! #Events #Celebration
     setModalVisible(true);
   };
 
-  const renderEventItem = ({ item, index }) => (
-    <View>
-      <View style={styles.eventCard}>
-        <View style={styles.imageContainer}>
-          <Image source={placeholder} style={styles.placeholderImage} />
-          <Image
-            source={
-              item.EventImage && item.EventImage !== "null"
-                ? {
-                    uri: `https://serverhiindia.barodaweb.org/${item.EventImage}`,
-                  }
-                : placeholder
-            }
-            style={[styles.eventImage]}
-            resizeMode="cover"
-          />
-        </View>
+  const renderEventItem = ({ item, index }) => {
+    // Construct and encode the image URL
+    const imageUrl =
+      item.EventImage && item.EventImage !== "null"
+        ? encodeURI(`https://server.bwebevents.com/${item.EventImage}`)
+        : null;
 
-        <View style={styles.eventContent}>
-          <Text style={styles.eventTitle}>{item.EventName}</Text>
+    console.log(`Image URL for event "${item.EventName}":`, imageUrl);
 
-          <View style={styles.categoryContainer}>
-            {item?.eventCategoryDetails?.map((data, index) => (
-              <View key={index} style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{data.category}</Text>
-              </View>
-            ))}
+    return (
+      <View>
+        <View style={styles.eventCard}>
+          <View style={styles.imageContainer}>
+            <Image source={placeholder} style={styles.placeholderImage} />
+            {imageUrl ? (
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.eventImage}
+                resizeMode="cover"
+                onError={(error) =>
+                  console.log(
+                    `Error loading image for event "${item.EventName}":`,
+                    error.nativeEvent.error
+                  )
+                }
+              />
+            ) : (
+              <Image
+                source={placeholder}
+                style={styles.eventImage}
+                resizeMode="cover"
+              />
+            )}
           </View>
 
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Icon name="group" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>
-                {item.NoOfParticipants || 0} Participants
-              </Text>
+          <View style={styles.eventContent}>
+            <Text style={styles.eventTitle}>{item.EventName}</Text>
+
+            <View style={styles.categoryContainer}>
+              {item?.eventCategoryDetails?.map((data, idx) => (
+                <View key={idx} style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{data.category}</Text>
+                </View>
+              ))}
             </View>
 
-            <View style={styles.infoRow}>
-              <Icon name="event" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>{formatDate(item.StartDate)}</Text>
+            <View style={styles.infoContainer}>
+              <View style={styles.infoRow}>
+                <Icon name="group" size={20} color="#2C3E50" />
+                <Text style={styles.infoText}>
+                  {item.NoOfParticipants || 0} Participants
+                </Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Icon name="event" size={20} color="#2C3E50" />
+                <Text style={styles.infoText}>{formatDate(item.StartDate)}</Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Icon name="schedule" size={20} color="#2C3E50" />
+                <Text style={styles.infoText}>
+                  {formatTime(item.StartDate)} - {formatTime(item.EndDate)}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Icon name="location-on" size={20} color="#2C3E50" />
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(item.googleMapLink)}
+                  style={styles.locationContainer}
+                >
+                  <Text style={styles.locationText}>{item.EventLocation}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.infoRow}>
-              <Icon name="schedule" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>
-                {formatTime(item.StartDate)} - {formatTime(item.EndDate)}
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Icon name="location-on" size={20} color="#2C3E50" />
+            {/* Buttons Container */}
+            <View style={styles.buttonsContainer}>
               <TouchableOpacity
-                onPress={() => Linking.openURL(item.googleMapLink)}
-                style={styles.locationContainer}
+                style={styles.shareButton}
+                onPress={() => handleShare(item)}
               >
-                <Text style={styles.locationText}>{item.EventLocation}</Text>
+                <Icon name="share" size={20} color="#FFFFFF" />
+                <Text style={styles.shareButtonText}>Share Event</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.viewDetailsButton}
+                onPress={() => handleViewDetails(item)}
+              >
+                <Icon name="info" size={20} color="#FFFFFF" />
+                <Text style={styles.viewDetailsButtonText}>View Details</Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Buttons Container */}
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity
-              style={styles.shareButton}
-              onPress={() => handleShare(item)}
-            >
-              <Icon name="share" size={20} color="#FFFFFF" />
-              <Text style={styles.shareButtonText}>Share Event</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.viewDetailsButton}
-              onPress={() => handleViewDetails(item)}
-            >
-              <Icon name="info" size={20} color="#FFFFFF" />
-              <Text style={styles.viewDetailsButtonText}>View Details</Text>
-            </TouchableOpacity>
-          </View>
         </View>
+        {index < events.length - 1 && <View style={styles.separator} />}
       </View>
-      {index < events.length - 1 && <View style={styles.separator} />}
-    </View>
-  );
+    );
+  };
+
+  // Function to handle closing the modal when clicking outside
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedEvent(null);
+  };
+
+  // Construct and encode the modal image URL
+  const getModalImageUrl = () => {
+    if (selectedEvent && selectedEvent.EventImage && selectedEvent.EventImage !== "null") {
+      return encodeURI(`https://server.bwebevents.com/${selectedEvent.EventImage}`);
+    }
+    return null;
+  };
+
+  const modalImageUrl = getModalImageUrl();
+
+  if (selectedEvent) {
+    console.log(`Modal Image URL for event "${selectedEvent.EventName}":`, modalImageUrl);
+  }
 
   return (
     <View style={styles.container}>
@@ -238,137 +278,160 @@ Don't miss out! Join us for this exciting event! #Events #Celebration
       {/* Modal for Event Details */}
       {selectedEvent && (
         <Modal
-          animationType="slide"
+          animationType="none" 
           transparent={true}
           visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(false);
-            setSelectedEvent(null);
-          }}
+          onRequestClose={handleCloseModal}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              {/* Header with close button */}
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{selectedEvent.EventName}</Text>
-                <TouchableOpacity
-                  style={styles.modalCloseIcon}
-                  onPress={() => {
-                    setModalVisible(false);
-                    setSelectedEvent(null);
-                  }}
-                >
-                  <Icon name="close" size={24} color="#1A5276" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                style={styles.modalScrollView}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
-                contentContainerStyle={styles.modalScrollContent}
-              >
-                {/* Event Image */}
-                <View style={styles.modalImageContainer}>
-                  <Image
-                    source={
-                      selectedEvent.EventImage && selectedEvent.EventImage !== "null"
-                        ? {
-                            uri: `https://serverhiindia.barodaweb.org/${selectedEvent.EventImage}`,
-                          }
-                        : placeholder
-                    }
-                    style={styles.modalEventImage}
-                    resizeMode="cover"
-                  />
-                </View>
-
-                {/* Event Details */}
-                <View style={styles.modalDetailsContainer}>
-                  {/* Date and Time Section */}
-                  <View style={styles.modalInfoSection}>
-                    <View style={styles.modalInfoRow}>
-                      <Icon name="event" size={24} color="#1A5276" />
-                      <View style={styles.modalInfoContent}>
-                        <Text style={styles.modalInfoLabel}>Date</Text>
-                        <Text style={styles.modalInfoText}>
-                          {formatDate(selectedEvent.StartDate)}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.modalInfoRow}>
-                      <Icon name="schedule" size={24} color="#1A5276" />
-                      <View style={styles.modalInfoContent}>
-                        <Text style={styles.modalInfoLabel}>Time</Text>
-                        <Text style={styles.modalInfoText}>
-                          {formatTime(selectedEvent.StartDate)} - {formatTime(selectedEvent.EndDate)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Description Section */}
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalSectionTitle}>About Event</Text>
-                    <Text style={styles.modalDescription}>
-                      {selectedEvent.EventDescreption
-                        ? selectedEvent.EventDescreption.replace(/<[^>]+>/g, '')
-                        : "No description available."}
-                    </Text>
-                  </View>
-
-                  {/* Location Section */}
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalSectionTitle}>Location</Text>
+          <TouchableWithoutFeedback onPress={handleCloseModal}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  {/* Header with close button */}
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>{selectedEvent.EventName}</Text>
                     <TouchableOpacity
-                      style={styles.modalLocationButton}
-                      onPress={() => Linking.openURL(selectedEvent.googleMapLink)}
+                      style={styles.modalCloseIcon}
+                      onPress={handleCloseModal}
                     >
-                      <Icon name="location-on" size={24} color="#1A5276" />
-                      <Text style={styles.modalLocationText}>
-                        {selectedEvent.EventLocation}
-                      </Text>
+                      <Icon name="close" size={30} color="#1A5276" />
                     </TouchableOpacity>
                   </View>
 
-                  {/* Sessions Section */}
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalSectionTitle}>Sessions</Text>
-                    {selectedEvent.SessionDetails && selectedEvent.SessionDetails.length > 0 ? (
-                      selectedEvent.SessionDetails.map((session, index) => (
-                        <View key={session._id} style={styles.modalSessionItem}>
-                          <View style={styles.sessionNumberBadge}>
-                            <Text style={styles.sessionNumberText}>{index + 1}</Text>
+                  <ScrollView
+                    style={styles.modalScrollView}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                    contentContainerStyle={styles.modalScrollContent}
+                  >
+                    {/* Event Image */}
+                    <View style={styles.modalImageContainer}>
+                      {modalImageUrl ? (
+                        <Image
+                          source={{ uri: modalImageUrl }}
+                          style={styles.modalEventImage}
+                          resizeMode="cover"
+                          onError={(error) =>
+                            console.log(
+                              `Error loading modal image for event "${selectedEvent.EventName}":`,
+                              error.nativeEvent.error
+                            )
+                          }
+                        />
+                      ) : (
+                        <Image
+                          source={placeholder}
+                          style={styles.modalEventImage}
+                          resizeMode="cover"
+                        />
+                      )}
+                    </View>
+
+                    {/* Event Details */}
+                    <View style={styles.modalDetailsContainer}>
+                      {/* Date and Time Section */}
+                      <View style={styles.modalInfoSection}>
+                        <View style={styles.modalInfoRow}>
+                          <Icon name="event" size={24} color="#1A5276" />
+                          <View style={styles.modalInfoContent}>
+                            <Text style={styles.modalInfoLabel}>Date</Text>
+                            <Text style={styles.modalInfoText}>
+                              {formatDate(selectedEvent.StartDate)}
+                            </Text>
                           </View>
-                          <Text style={styles.modalSessionName}>{session.sessionName}</Text>
                         </View>
-                      ))
-                    ) : (
-                      <Text style={styles.modalNoContent}>No sessions available.</Text>
-                    )}
+                        <View style={styles.modalInfoRow}>
+                          <Icon name="schedule" size={24} color="#1A5276" />
+                          <View style={styles.modalInfoContent}>
+                            <Text style={styles.modalInfoLabel}>Time</Text>
+                            <Text style={styles.modalInfoText}>
+                              {formatTime(selectedEvent.StartDate)} -{" "}
+                              {formatTime(selectedEvent.EndDate)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Description Section */}
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>About Event</Text>
+                        <Text style={styles.modalDescription}>
+                          {selectedEvent.EventDescreption
+                            ? selectedEvent.EventDescreption.replace(/<[^>]+>/g, "")
+                            : "No description available."}
+                        </Text>
+                      </View>
+
+                      {/* Location Section */}
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>Location</Text>
+                        <TouchableOpacity
+                          style={styles.modalLocationButton}
+                          onPress={() =>
+                            Linking.openURL(selectedEvent.googleMapLink)
+                          }
+                        >
+                          <Icon name="location-on" size={24} color="#1A5276" />
+                          <Text style={styles.modalLocationText}>
+                            {selectedEvent.EventLocation}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Sessions Section */}
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>Sessions</Text>
+                        {selectedEvent.SessionDetails &&
+                        selectedEvent.SessionDetails.length > 0 ? (
+                          selectedEvent.SessionDetails.map((session, index) => (
+                            <View
+                              key={session._id}
+                              style={styles.modalSessionItem}
+                            >
+                              <View style={styles.sessionNumberBadge}>
+                                <Text style={styles.sessionNumberText}>
+                                  {index + 1}
+                                </Text>
+                              </View>
+                              <Text style={styles.modalSessionName}>
+                                {session.sessionName}
+                              </Text>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.modalNoContent}>
+                            No sessions available.
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </ScrollView>
+
+                  {/* Action Buttons */}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={styles.modalShareButton}
+                      onPress={() => handleShare(selectedEvent)}
+                    >
+                      <Icon name="share" size={20} color="#FFFFFF" />
+                      <Text style={styles.modalButtonText}>Share Event</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.modalRegisterButton}
+                      onPress={() =>
+                        Linking.openURL(
+                          "https://participant.bwebevents.com/register"
+                        )
+                      }
+                    >
+                      <Icon name="how-to-reg" size={20} color="#FFFFFF" />
+                      <Text style={styles.modalButtonText}>Register Now</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              </ScrollView>
-
-              {/* Action Buttons */}
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={styles.modalShareButton}
-                  onPress={() => handleShare(selectedEvent)}
-                >
-                  <Icon name="share" size={20} color="#FFFFFF" />
-                  <Text style={styles.modalButtonText}>Share Event</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalRegisterButton}
-                  onPress={() => Linking.openURL('https://participant.bwebevents.com/register')}
-                >
-                  <Icon name="how-to-reg" size={20} color="#FFFFFF" />
-                  <Text style={styles.modalButtonText}>Register Now</Text>
-                </TouchableOpacity>
-              </View>
+              </TouchableWithoutFeedback>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
       )}
 
@@ -405,9 +468,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingTop: 10,
-    overflow: "hidden", 
+    overflow: "hidden",
   },
-  
+
   listContainer: {
     padding: 16,
   },
@@ -578,17 +641,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
   },
-  
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end', 
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    height: '90%',
+    height: "90%",
     padding: 20,
     shadowColor: "#000",
     shadowOffset: {
@@ -598,56 +661,56 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 15,
-    flexDirection: 'column',
+    flexDirection: "column",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
-    position: 'relative', 
+    position: "relative",
   },
   modalTitle: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
     color: "#1A5276",
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalCloseIcon: {
-    position: 'absolute',
-    right: -10,
-    top: 30,
+    position: "absolute",
+    right: -5, 
+    top: 30, 
     padding: 5,
   },
   modalScrollView: {
     flex: 1,
   },
   modalScrollContent: {
-    paddingBottom: 20, 
+    paddingBottom: 20,
   },
   modalImageContainer: {
     height: 200,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 20,
   },
   modalEventImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   modalDetailsContainer: {
     flex: 1,
   },
   modalInfoSection: {
-    backgroundColor: '#F5F6FA',
+    backgroundColor: "#F5F6FA",
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
   },
   modalInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   modalInfoContent: {
@@ -656,12 +719,12 @@ const styles = StyleSheet.create({
   modalInfoLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    color: '#666',
+    color: "#666",
   },
   modalInfoText: {
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   modalSection: {
     marginBottom: 25,
@@ -679,9 +742,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   modalLocationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F6FA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F6FA",
     padding: 15,
     borderRadius: 12,
   },
@@ -693,9 +756,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalSessionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F6FA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F6FA",
     padding: 12,
     borderRadius: 12,
     marginBottom: 10,
@@ -704,13 +767,13 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1A5276',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#1A5276",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   sessionNumberText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     fontSize: 14,
   },
@@ -719,35 +782,35 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: "#2C3E50",
     flex: 1,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   modalNoContent: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     color: "#666",
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: "#E0E0E0",
   },
   modalShareButton: {
     backgroundColor: "#1A5276",
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 15,
     borderRadius: 12,
     flex: 0.48,
   },
   modalRegisterButton: {
     backgroundColor: "#2E86C1",
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 15,
     borderRadius: 12,
     flex: 0.48,
