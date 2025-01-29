@@ -15,6 +15,7 @@ import { useAuthContext } from "../context/AuthContext";
 // import ScannerProd from "../screens/ScannerProd";
 import ScannerDev from "../screens/ScannerDev";
 import SessionDetails from "../screens/SessionDetails";
+import ViewEventDetails from "../screens/ViewEventDetails";
 
 const Stack = createStackNavigator();
 
@@ -62,6 +63,11 @@ export default function MainNavigator() {
           <Stack.Screen name="Participants" component={Participants} />
           <Stack.Screen name="EventSession" component={EventSession} />
           <Stack.Screen name="SessionDetails" component={SessionDetails} />
+          <Stack.Screen
+            name="ViewEventDetails"
+            component={ViewEventDetails}
+            options={{ gestureEnabled: true }}
+          />
         </>
       )}
     </Stack.Navigator>
