@@ -39,7 +39,7 @@ export default function Events() {
 
   const fetchEvents = async () => {
     setLoading(true);
-    console.log("TEST:", selectedEventPartner);
+   
     const partnerId = userType === "eventUser" ? selectedEventPartner : user;
     try {
       const payload = {
@@ -51,7 +51,7 @@ export default function Events() {
       };
       const response = await fetchEventsByPartner(payload);
       setEvents(response || []);
-      console.log("Events fetched successfully:", response);
+      // console.log("Events fetched successfully:", response);
     } catch (err) {
       setError("Failed to fetch events.");
       console.error("Error fetching events:", err);
@@ -123,7 +123,7 @@ Don't miss out! Join us for this exciting event! #Events #Celebration
         ? encodeURI(`https://server.bwebevents.com/${item.EventImage}`)
         : null;
 
-    console.log(`Image URL for event "${item.EventName}":`, imageUrl);
+    // console.log(`Image URL for event "${item.EventName}":`, imageUrl);
 
     return (
       <View>
