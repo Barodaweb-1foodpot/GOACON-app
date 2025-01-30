@@ -54,15 +54,12 @@ export default function EventSession({ route, navigation }) {
     const now = new Date();
     const sessionStart = new Date(startTime);
     const sessionEnd = new Date(endTime);
-    const oneHourBefore = new Date(sessionStart.getTime() - 60 * 60 * 1000);
-    const oneHourAfter = new Date(sessionEnd.getTime() + 60 * 60 * 1000);
 
-    console.log("Current Time:", now);
-    console.log("Session Start:", sessionStart);
-    console.log("Session End:", sessionEnd);
-    console.log("Valid Time Window:", oneHourBefore, "to", oneHourAfter);
+    // console.log("Current Time:", now.toLocaleString());
+    console.log("Session Start:", sessionStart.toLocaleString());
+    console.log("Session End:", sessionEnd.toLocaleString());
 
-    return now >= oneHourBefore && now <= oneHourAfter;
+    return now >= sessionStart && now <= sessionEnd;
   };
 
   const handleSessionScan = async (sessionId) => {
@@ -244,7 +241,7 @@ export default function EventSession({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -362,6 +359,7 @@ const styles = StyleSheet.create({
   },
   sessionsContainer: {
     gap: 12,
+    marginBottom: 35,
   },
   sessionCard: {
     backgroundColor: "#FFFFFF",
@@ -392,8 +390,8 @@ const styles = StyleSheet.create({
   sessionDate: {
     fontSize: 14,
     color: "#666666",
-    marginLeft: 8, 
-    flex: 1, 
+    marginLeft: 8,
+    flex: 1,
   },
   timeContainer: {
     flexDirection: "row",

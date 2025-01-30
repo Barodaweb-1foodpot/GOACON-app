@@ -11,6 +11,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext, useAuthContext } from "../context/AuthContext";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function Homepage() {
   const navigation = useNavigation();
@@ -34,7 +35,12 @@ export default function Homepage() {
   );
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#000B19", "#001F3F", "#003366"]}
+      style={styles.container}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
       {/* Header Section */}
       <View style={styles.header}>
         <View>
@@ -75,16 +81,7 @@ export default function Homepage() {
           onPress={() => navigation.navigate("Scanner")}
         />
       </View>
-
-      {/* Scanner Quick Action */}
-      {/* <TouchableOpacity 
-        style={styles.scannerButton}
-        onPress={() => navigation.navigate("Scanner")}
-      >
-        <Icon name="qr-code-scanner" size={24} color="#1A5276" />
-        <Text style={styles.scannerButtonText}>Open Scanner</Text>
-      </TouchableOpacity> */}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -94,7 +91,6 @@ const cardWidth = (width - 60) / 2;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A5276",
     paddingTop: Platform.OS === "android" ? 25 : 48,
     paddingHorizontal: 20,
   },
@@ -116,7 +112,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   profileIcon: {
-    backgroundColor: "#154360",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     padding: 10,
     borderRadius: 50,
   },
@@ -150,21 +146,5 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
     textAlign: "center",
-  },
-  scannerButton: {
-    flexDirection: 'row',
-    backgroundColor: "#FFFFFF",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    elevation: 5,
-  },
-  scannerButtonText: {
-    color: "#1A5276",
-    fontFamily: "Poppins-Medium",
-    marginLeft: 10,
-    fontSize: 16,
   },
 });

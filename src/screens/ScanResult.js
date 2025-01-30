@@ -101,9 +101,8 @@ export default function ScanResult({ route }) {
     const now = new Date();
     const sessionStart = new Date(startTime);
     const sessionEnd = new Date(endTime);
-    const oneHourBefore = new Date(sessionStart.getTime() - 60 * 60 * 1000);
-    const oneHourAfter = new Date(sessionEnd.getTime() + 60 * 60 * 1000);
-    return now >= oneHourBefore && now <= oneHourAfter;
+
+    return now >= sessionStart && now <= sessionEnd;
   };
 
   const handleSessionScan = async (sessionId) => {
@@ -307,7 +306,7 @@ export default function ScanResult({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Participant Details</Text>
       </View>

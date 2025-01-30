@@ -67,6 +67,31 @@ export default function Events() {
     return new Date(date).toLocaleDateString(undefined, options);
   };
 
+  const formatDateRange = (startDate, endDate) => {
+    if (!startDate || !endDate) return "N/A";
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const sameDay = start.toDateString() === end.toDateString();
+    const sameMonth = start.getMonth() === end.getMonth();
+    const sameYear = start.getFullYear() === end.getFullYear();
+
+    if (sameDay) {
+      return start.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } else if (sameMonth && sameYear) {
+      return `${start.getDate()} & ${end.getDate()} ${start.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
+    } else if (sameYear) {
+      return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short" })} - ${end.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${start.getFullYear()}`;
+    } else {
+      return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} - ${end.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
+    }
+  };
+
   const formatTime = (date) => {
     if (!date) return "N/A";
     const options = { hour: "2-digit", minute: "2-digit" };
@@ -75,14 +100,12 @@ export default function Events() {
 
   const handleShare = async (event) => {
     try {
-      const message = `✨ **${event?.EventName}** ✨
-📅 **Date:** ${formatDate(event.StartDate)}
-⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(event.EndDate)}
-👥 **Participants:** ${event?.NoOfParticipants || 0}
-📍 **Location:** ${event.EventLocation}
-🗺️ **Google Maps:** ${event.googleMapLink}
-Don't miss out! Join us for this exciting event! #Events #Celebration
-🔗 **To register for this event:** https://participant.bwebevents.com/register`;
+      const dateRange = formatDateRange(event.StartDate, event.EndDate);
+      const message = `✨ *${event?.EventName}* ✨
+📅 *Date:* ${dateRange}
+⏰ *Time:* ${formatTime(event?.StartDate)} - ${formatTime(event?.EndDate)}
+📍 *Location:* ${event.EventLocation}
+🗺️ *Google Maps:* ${event.googleMapLink}`;
 
       await Share.share({
         message,
@@ -133,15 +156,10 @@ Don't miss out! Join us for this exciting event! #Events #Celebration
 
           <View style={styles.infoContainer}>
             <View style={styles.infoRow}>
-              <Icon name="group" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>
-                {item.NoOfParticipants || 0} Participants
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
               <Icon name="event" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>{formatDate(item.StartDate)}</Text>
+              <Text style={styles.infoText}>
+                {formatDateRange(item.StartDate, item.EndDate)}
+              </Text>
             </View>
 
             <View style={styles.infoRow}>

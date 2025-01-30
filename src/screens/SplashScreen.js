@@ -14,7 +14,22 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
-const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 40 : StatusBar.currentHeight;
+const STATUSBAR_HEIGHT = Platform.OS === "ios" ? 40 : StatusBar.currentHeight;
+const PARTICLE_COUNT = 100;
+
+// Different star configurations
+const STAR_CONFIGS = [
+  { size: 1.5, probability: 0.6, twinkleSpeed: 1000 },
+  { size: 2.5, probability: 0.3, twinkleSpeed: 1500 },
+  { size: 3.5, probability: 0.1, twinkleSpeed: 2000 },
+];
+
+const STAR_COLORS = [
+  "rgba(255, 255, 255, 0.9)",
+  "rgba(255, 255, 255, 0.7)",
+  "rgba(173, 216, 230, 0.8)",
+  "rgba(255, 223, 186, 0.8)",
+];
 
 export default function SplashScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -22,14 +37,32 @@ export default function SplashScreen() {
   const slideUpAnim = useRef(new Animated.Value(50)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
 
+  
+  const stars = useRef(
+    [...Array(PARTICLE_COUNT)].map(() => {
+      const rand = Math.random();
+      const config =
+        STAR_CONFIGS.find((c) => rand <= c.probability) || STAR_CONFIGS[0];
+
+      return {
+        opacity: new Animated.Value(Math.random()),
+        left: Math.random() * width,
+        top: Math.random() * height * 0.8, 
+        size: config.size,
+        color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
+        twinkleSpeed: config.twinkleSpeed + Math.random() * 500, 
+        delay: Math.random() * 1000, 
+      };
+    })
+  ).current;
+
   useEffect(() => {
-    // Sequence of animations
+    // Main content animations
     Animated.sequence([
-      // Initial logo animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
@@ -39,49 +72,73 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
-      // Text animations
       Animated.parallel([
         Animated.timing(slideUpAnim, {
           toValue: 0,
-          duration: 800,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(textFadeAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ]),
     ]).start();
+
+    
+    stars.forEach((star) => {
+      const createTwinkle = () => {
+        Animated.sequence([
+          Animated.timing(star.opacity, {
+            toValue: Math.random() * 0.4 + 0.4, 
+            duration: star.twinkleSpeed,
+            useNativeDriver: true,
+          }),
+          Animated.timing(star.opacity, {
+            toValue: Math.random() * 0.2 + 0.1,
+            duration: star.twinkleSpeed,
+            useNativeDriver: true,
+          }),
+        ]).start(createTwinkle);
+      };
+
+      setTimeout(createTwinkle, star.delay);
+    });
   }, []);
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <LinearGradient
-        colors={["#003366", "#001F3F", "#000B19"]}
+        colors={["#000B19", "#001F3F", "#003366"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
       >
-        {/* Floating particles effect */}
-        <View style={styles.particlesContainer}>
-          {[...Array(20)].map((_, i) => (
-            <View
+        <View style={styles.starsContainer}>
+          {stars.map((star, i) => (
+            <Animated.View
               key={i}
               style={[
-                styles.particle,
+                styles.star,
                 {
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 5}s`,
+                  left: star.left,
+                  top: star.top,
+                  width: star.size,
+                  height: star.size,
+                  backgroundColor: star.color,
+                  opacity: star.opacity,
                 },
               ]}
             />
           ))}
         </View>
 
-        {/* Logo container */}
         <Animated.View
           style={[
             styles.logoContainer,
@@ -98,7 +155,6 @@ export default function SplashScreen() {
           />
         </Animated.View>
 
-        {/* Date and tagline */}
         <Animated.View
           style={[
             styles.textContainer,
@@ -110,7 +166,9 @@ export default function SplashScreen() {
         >
           <Text style={styles.dateText}>7th & 8th February</Text>
           <View style={styles.taglineContainer}>
-            <Text style={styles.taglineText}>Exchange | Empower | Transform</Text>
+            <Text style={styles.taglineText}>
+              Exchange | Empower | Transform
+            </Text>
           </View>
         </Animated.View>
       </LinearGradient>
@@ -128,25 +186,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: STATUSBAR_HEIGHT,
   },
-  particlesContainer: {
+  starsContainer: {
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
-  particle: {
+  star: {
     position: "absolute",
-    width: 4,
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: 2,
+    borderRadius: 50,
+    shadowColor: "#FFF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 1,
   },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 15,
   },
   logo: {
     width: width * 0.8,
@@ -154,7 +213,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     position: "absolute",
-    bottom: Platform.OS === 'ios' ? 60 : 40,
+    bottom: Platform.OS === "ios" ? 60 : 40,
     alignItems: "center",
   },
   dateText: {
@@ -163,17 +222,25 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 15,
     letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   taglineContainer: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   taglineText: {
     fontSize: 16,
     color: "#FFFFFF",
     fontWeight: "500",
     letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

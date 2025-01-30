@@ -49,6 +49,28 @@ export default function ViewEventDetails() {
     return new Date(date).toLocaleDateString(undefined, options);
   };
 
+  // Add the formatDateRange function
+  const formatDateRange = (startDate, endDate) => {
+    if (!startDate || !endDate) return "N/A";
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const sameDay = start.toDateString() === end.toDateString();
+    const sameMonth = start.getMonth() === end.getMonth();
+    const sameYear = start.getFullYear() === end.getFullYear();
+
+    if (sameDay) {
+      return start.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    } else if (sameMonth && sameYear) {
+      return `${start.getDate()} & ${end.getDate()} ${start.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`;
+    } else if (sameYear) {
+      return `${start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${start.getFullYear()}`;
+    } else {
+      return `${start.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    }
+  };
+
   const formatTime = (date) => {
     if (!date) return "N/A";
     const options = { hour: "2-digit", minute: "2-digit" };
@@ -57,7 +79,16 @@ export default function ViewEventDetails() {
 
   const handleShare = async () => {
     try {
-      const message = `✨ ${event?.EventName} ✨\n\n📅 Date: ${formatDate(event.StartDate)}\n⏰ Time: ${formatTime(event?.StartDate)} - ${formatTime(event.EndDate)}\n📍 Location: ${event.EventLocation}\n🗺️ Google Maps: ${event.googleMapLink}\n\nDon't miss out! Join us for this exciting event!\n\n🔗 Register: https://participant.bwebevents.com/register`;
+      const dateRange = formatDateRange(event.StartDate, event.EndDate);
+      const message = `✨ **${event?.EventName}** ✨
+📅 **Date:** ${dateRange}
+⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(event.EndDate)}
+📍 **Location:** ${event.EventLocation}
+🗺️ **Google Maps:** ${event.googleMapLink}
+
+Don't miss out! Join us for this exciting event!
+
+🔗 Register: https://participant.bwebevents.com/register`;
 
       await Share.share({
         message,
@@ -123,7 +154,8 @@ export default function ViewEventDetails() {
                 <Icon name="event" size={24} color="#1A5276" />
                 <View style={styles.textContainer}>
                   <Text style={styles.label}>Date</Text>
-                  <Text style={styles.value}>{formatDate(event.StartDate)}</Text>
+                  {/* Use formatDateRange instead of formatDate */}
+                  <Text style={styles.value}>{formatDateRange(event.StartDate, event.EndDate)}</Text>
                 </View>
               </View>
               <View style={styles.timeContainer}>
