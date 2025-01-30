@@ -3,7 +3,7 @@
 /* eslint-disable react/jsx-no-undef */
 import React, { useEffect, useState } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import * as Font from "expo-font"; 
+import * as Font from "expo-font";
 import AuthNavigator from "./AuthNavigator";
 import Homepage from "../screens/Homepage";
 import ScanResult from "../screens/ScanResult";
@@ -21,28 +21,33 @@ const Stack = createStackNavigator();
 
 export default function MainNavigator() {
   const { fetchUser, user, loading } = useAuthContext();
-
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const initialize = async () => {
+    const loadFontsAndUser = async () => {
       try {
         await Font.loadAsync({
           Poppins: require("../../assets/fonts/Poppins-Regular.ttf"),
           "Poppins-Bold": require("../../assets/fonts/Poppins-Bold.ttf"),
         });
         setFontsLoaded(true);
-
         await fetchUser();
-      } catch (err) {
-        console.warn("Initialization error:", err);
+      } catch (error) {
+        console.error("Initialization error:", error);
       }
     };
 
-    initialize();
+    loadFontsAndUser();
+
+    const splashTimeout = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000);
+
+    return () => clearTimeout(splashTimeout);
   }, []);
 
-  if (!fontsLoaded || loading) {
+  if (showSplash || !fontsLoaded || loading) {
     return <SplashScreen />;
   }
 
