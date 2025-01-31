@@ -26,14 +26,30 @@ export const fetchEventsByPartner = async (id) => {
 
 export const fetchParticipants = async (payload) => {
   try {
+    const perPage =
+      payload.per_page === "total"
+        ? 10000 
+        : Math.min(Math.max(10, payload.per_page), 1000); 
+
+    const requestPayload = {
+      ...payload,
+      skip: payload.skip || 0,
+      per_page: perPage,
+      sorton: "createdAt",
+      sortdir: "desc",
+    };
+
     const response = await axios.post(
       `${API_BASE_URL}/auth/list-by-params/EventRegisterFilter`,
-      payload
+      requestPayload
     );
-     
+
+    const responseData = response?.data[0] || {};
+
     return {
-      data: response?.data[0]?.data || [],
-      count: response?.data[0]?.count || 0,
+      data: responseData.data || [],
+      count: responseData.count || 0,
+      totalPages: Math.ceil((responseData.count || 0) / perPage),
     };
   } catch (error) {
     console.error("Error fetching participants:", error);

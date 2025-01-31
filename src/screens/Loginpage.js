@@ -20,6 +20,7 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import DropDownPicker from "react-native-dropdown-picker";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { useAuthContext } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
@@ -34,30 +35,17 @@ import {
 import logo from "../../assets/logo.png";
 
 export default function LoginPage() {
-  // Tracks whether the user is "eventPartner" or "eventUser"
+  // [Previous state and hooks remain exactly the same]
   const [localUserType, setLocalUserType] = useState("eventPartner");
-
-  // For the dropdown when userType = "eventUser"
   const [eventPartners, setEventPartners] = useState([]);
   const [eventPartnersOpen, setEventPartnersOpen] = useState(false);
-
-  // For server-side errors
   const [serverError, setServerError] = useState("");
-
-  // For password visibility
   const [showPassword, setShowPassword] = useState(false);
-
-  // Access Auth context
-  const { setUser, setSelectedEventPartner, setUserType, loading } =
-    useAuthContext();
-
-  // For navigation if needed
+  const { setUser, setSelectedEventPartner, setUserType, loading } = useAuthContext();
   const navigation = useNavigation();
-
-  // We use Formik's ref so we can manually reset the form whenever user type changes
   const formikRef = useRef(null);
 
-  // Validation with Yup
+  // [Validation schema, useEffect, and handlers remain exactly the same]
   const loginValidationSchema = Yup.object().shape({
     email: Yup.string()
       .email("Please enter a valid email")
@@ -71,19 +59,16 @@ export default function LoginPage() {
         : Yup.string(),
   });
 
-  // Whenever localUserType changes, fetch partners if needed, reset form, clear server error
   useEffect(() => {
     if (localUserType === "eventUser") {
       fetchPartners();
     }
-    // Reset the form when toggling user type
     if (formikRef.current) {
       formikRef.current.resetForm();
     }
     setServerError("");
   }, [localUserType]);
 
-  // Fetch event partners from the server
   const fetchPartners = async () => {
     try {
       const data = await fetchEventPartners();
@@ -97,17 +82,14 @@ export default function LoginPage() {
     }
   };
 
-  // Submit handler
   const handleLogin = async (values, { setSubmitting }) => {
     setServerError("");
     try {
       if (localUserType === "eventPartner") {
-        // Event Partner login
         const response = await eventPartnerLogin(values.email, values.password);
         if (response.isOk) {
           await AsyncStorage.setItem("_id", response.data.eventPartner._id);
           await AsyncStorage.setItem("role", "eventPartner");
-
           setUser(response.data.eventPartner._id);
           setSelectedEventPartner(response.data.eventPartner._id);
           setUserType("eventPartner");
@@ -115,7 +97,6 @@ export default function LoginPage() {
           setServerError("Invalid email or password");
         }
       } else {
-        // Event User login
         const response = await eventUserLogin(
           values.email,
           values.password,
@@ -124,7 +105,6 @@ export default function LoginPage() {
         if (response.isOk) {
           await AsyncStorage.setItem("_id", response.data.user._id);
           await AsyncStorage.setItem("role", "eventUser");
-
           setUser(response.data.user._id);
           setSelectedEventPartner(values.eventPartner);
           setUserType("eventUser");
@@ -145,38 +125,38 @@ export default function LoginPage() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Adjust status bar color for better UI */}
-      <StatusBar barStyle="light-content" backgroundColor="#154360" />
+      <StatusBar barStyle="light-content" backgroundColor="#000B19" />
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Top Logo Section */}
-          <View style={styles.topBackground}>
+          {/* Top Logo Section with LinearGradient */}
+          <LinearGradient
+            colors={["#000B19", "#001F3F", "#003366"]}
+            style={styles.topBackground}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          >
             <View style={styles.logoContainer}>
               <Image source={logo} style={styles.logo} />
             </View>
-          </View>
+          </LinearGradient>
 
-          {/* Form Container */}
+          {/* Rest of the form remains exactly the same */}
           <View style={styles.formContainer}>
             <Text style={styles.welcomeText}>Welcome Back.</Text>
 
-            {/* Toggle User Type Buttons */}
             <View style={styles.radioContainer}>
               <TouchableOpacity
                 style={styles.radioButton}
-                onPress={() => {
-                  setLocalUserType("eventPartner");
-                }}
+                onPress={() => setLocalUserType("eventPartner")}
               >
                 <View
                   style={[
                     styles.radioCircle,
-                    localUserType === "eventPartner" &&
-                      styles.radioCircleSelected,
+                    localUserType === "eventPartner" && styles.radioCircleSelected,
                   ]}
                 />
                 <Text style={styles.radioText}>Event Partner</Text>
@@ -184,15 +164,12 @@ export default function LoginPage() {
 
               <TouchableOpacity
                 style={styles.radioButton}
-                onPress={() => {
-                  setLocalUserType("eventUser");
-                }}
+                onPress={() => setLocalUserType("eventUser")}
               >
                 <View
                   style={[
                     styles.radioCircle,
-                    localUserType === "eventUser" &&
-                      styles.radioCircleSelected,
+                    localUserType === "eventUser" && styles.radioCircleSelected,
                   ]}
                 />
                 <Text style={styles.radioText}>Event User</Text>
@@ -220,7 +197,6 @@ export default function LoginPage() {
                 setFieldValue,
               }) => (
                 <View style={styles.formikContainer}>
-                  {/* Email Field */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>
                       User name/Email ID <Text style={styles.asterisk}>*</Text>
@@ -241,7 +217,6 @@ export default function LoginPage() {
                       <Text style={styles.errorText}>{errors.email}</Text>
                     )}
 
-                    {/* Password Field */}
                     <Text style={styles.label}>
                       Password <Text style={styles.asterisk}>*</Text>
                     </Text>
@@ -255,7 +230,6 @@ export default function LoginPage() {
                         onBlur={handleBlur("password")}
                         value={values.password}
                       />
-                      {/* Toggle Icon for Show/Hide Password */}
                       <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
                       >
@@ -271,12 +245,10 @@ export default function LoginPage() {
                     )}
                   </View>
 
-                  {/* DropDownPicker for Event User */}
                   {localUserType === "eventUser" && (
                     <View style={styles.dropdownContainer}>
                       <Text style={styles.label}>
-                        Select Event Partner{" "}
-                        <Text style={styles.asterisk}>*</Text>
+                        Select Event Partner <Text style={styles.asterisk}>*</Text>
                       </Text>
                       <DropDownPicker
                         open={eventPartnersOpen}
@@ -295,19 +267,15 @@ export default function LoginPage() {
                         zIndexInverse={1000}
                       />
                       {errors.eventPartner && touched.eventPartner && (
-                        <Text style={styles.errorText}>
-                          {errors.eventPartner}
-                        </Text>
+                        <Text style={styles.errorText}>{errors.eventPartner}</Text>
                       )}
                     </View>
                   )}
 
-                  {/* Server Error */}
                   {serverError ? (
                     <Text style={styles.serverErrorText}>{serverError}</Text>
                   ) : null}
 
-                  {/* Login Button */}
                   <TouchableOpacity
                     style={styles.loginButton}
                     onPress={handleSubmit}
@@ -329,9 +297,6 @@ export default function LoginPage() {
   );
 }
 
-// -----------------
-// STYLES
-// -----------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -342,7 +307,6 @@ const styles = StyleSheet.create({
   },
   topBackground: {
     height: 250,
-    backgroundColor: "#154360",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -364,6 +328,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     marginTop: -30,
   },
+  // [Rest of the styles remain exactly the same]
   welcomeText: {
     fontSize: 28,
     fontFamily: "Poppins-Bold",
@@ -433,7 +398,7 @@ const styles = StyleSheet.create({
   },
   dropdownContainer: {
     marginVertical: 10,
-    zIndex: 2000, // Ensure dropdown is on top
+    zIndex: 2000,
   },
   dropdown: {
     borderColor: "#B3B6B7",

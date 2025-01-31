@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/prop-types */
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -12,18 +12,18 @@ import {
   StatusBar as RNStatusBar,
   ScrollView,
   Alert,
+  Dimensions,
 } from "react-native";
-import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   fetchEventDetails,
   markParticipantEntered,
   markSessionScanned,
 } from "../api/eventApi";
 import { StatusBar } from "expo-status-bar";
-import successAnimation from "../../assets/animations/success-tick.json";
 
 export default function ScanResult({ route }) {
   const navigation = useNavigation();
@@ -88,7 +88,16 @@ export default function ScanResult({ route }) {
       }
 
       await markParticipantEntered(registerId);
+      // Update local state immediately
+      setEventDetails((prev) => ({
+        ...prev,
+        isScanned: true,
+      }));
       setShowAnimation(true);
+      setTimeout(() => {
+        setShowAnimation(false);
+        setShowSessions(true);
+      }, 2000);
     } catch (error) {
       Toast.show({
         type: "error",
@@ -103,17 +112,12 @@ export default function ScanResult({ route }) {
     const now = new Date();
     const sessionStart = new Date(startTime);
     const sessionEnd = new Date(endTime);
-    const oneHourBefore = new Date(sessionStart.getTime() - 60 * 60 * 1000);
-    const oneHourAfter = new Date(sessionEnd.getTime() + 60 * 60 * 1000);
-    return now >= oneHourBefore && now <= oneHourAfter;
+    return now >= sessionStart && now <= sessionEnd;
   };
 
   const handleSessionScan = async (sessionId) => {
     Alert.alert("Enter Session", "Do you want to enter this session?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
+      { text: "Cancel", style: "cancel" },
       {
         text: "Yes",
         onPress: async () => {
@@ -150,7 +154,6 @@ export default function ScanResult({ route }) {
     });
   };
 
-  // New function to format full date and time
   const formatFullDateTime = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -164,42 +167,63 @@ export default function ScanResult({ route }) {
     });
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
+  };
+
   const renderParticipantCard = () => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.participantName}>
           {eventDetails?.name || "N/A"}
         </Text>
+        <View style={styles.statusBadge}>
+          <Icon
+            name={eventDetails?.isScanned ? "check-circle" : "pending"}
+            size={16}
+            color={eventDetails?.isScanned ? "#4CAF50" : "#FFA000"}
+          />
+          <Text
+            style={[
+              styles.statusText,
+              { color: eventDetails?.isScanned ? "#4CAF50" : "#FFA000" },
+            ]}
+          >
+            {eventDetails?.isScanned ? "Checked In" : "Not Entered"}
+          </Text>
+        </View>
       </View>
+
       <Text style={styles.eventName}>
         {eventDetails?.eventName?.EventName || "N/A"}
       </Text>
-      <View style={styles.ticketContainer}>
-        {/* <Icon name="confirmation-number" size={20} color="#666666" />
-        <Text style={styles.ticketText}>
-          {eventDetails?.TicketType?.TicketType || "N/A"}
-        </Text> */}
-        <Icon
-          name="person"
-          size={20}
-          color="#666666"
-          style={styles.iconStyle}
-        />
-        <Text style={styles.ticketCategory}>
-          {eventDetails?.ticketCategory || "N/A"}
-        </Text>
-      </View>
-      <View style={styles.locationContainer}>
-        <Icon name="room" size={20} color="#666666" style={styles.iconStyle} />
-        <Text style={styles.eventLocation}>
-          {eventDetails?.eventName?.EventLocation || "N/A"}
-        </Text>
-      </View>
-      <View style={styles.dateContainer}>
-        <Icon name="event" size={20} color="#666666" style={styles.iconStyle} />
-        <Text style={styles.registrationDate}>
-          {`Registered on: ${formatFullDateTime(eventDetails?.createdAt)}`}
-        </Text>
+
+      <View style={styles.infoContainer}>
+        <View style={styles.infoItem}>
+          <Icon name="person" size={20} color="#FFFFFF" />
+          <Text style={styles.infoText}>
+            {eventDetails?.designation || "N/A"}
+          </Text>
+        </View>
+
+        <View style={styles.infoItem}>
+          <Icon name="room" size={20} color="#FFFFFF" />
+          <Text style={styles.infoText}>
+            {eventDetails?.eventName?.EventLocation || "N/A"}
+          </Text>
+        </View>
+
+        <View style={styles.infoItem}>
+          <Icon name="event" size={20} color="#FFFFFF" />
+          <Text style={styles.infoText}>
+            {`Registered: ${formatFullDateTime(eventDetails?.createdAt)}`}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -214,7 +238,14 @@ export default function ScanResult({ route }) {
     );
 
     if (!availableSessions || availableSessions.length === 0) {
-      return null;
+      return (
+        <View style={styles.noSessionsContainer}>
+          <Icon name="event-busy" size={48} color="#FFFFFF" />
+          <Text style={styles.noSessionsText}>
+            No active sessions available
+          </Text>
+        </View>
+      );
     }
 
     return (
@@ -222,13 +253,17 @@ export default function ScanResult({ route }) {
         <Text style={styles.sessionsTitle}>Event Sessions</Text>
         <View style={styles.sessionsContainer}>
           {availableSessions.map((session) => {
+            const sessionStart = session.EventSession?.startTime;
+            const sessionEnd = session.EventSession?.endTime;
             const isAvailable = isSessionWithinTimeWindow(
-              session.EventSession?.startTime,
-              session.EventSession?.endTime
+              sessionStart,
+              sessionEnd
             );
+
             return (
-              <View
+              <LinearGradient
                 key={session.EventSession?._id}
+                colors={["rgba(255,255,255,0.15)", "rgba(255,255,255,0.05)"]}
                 style={[
                   styles.sessionCard,
                   {
@@ -241,23 +276,33 @@ export default function ScanResult({ route }) {
                     <Text style={styles.sessionName}>
                       {session.EventSession?.sessionName || "Unnamed Session"}
                     </Text>
+
                     <View style={styles.timeContainer}>
-                      <Icon name="schedule" size={16} color="#666666" />
+                      <Icon name="event" size={16} color="#FFFFFF" />
+                      <Text style={styles.sessionDate}>
+                        {formatDate(sessionStart)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.timeContainer}>
+                      <Icon name="schedule" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionTime}>
-                        {`${formatFullDateTime(session.EventSession?.startTime)} - ${formatDateTime(
-                          session.EventSession?.endTime
+                        {`${formatDateTime(sessionStart)} - ${formatDateTime(
+                          sessionEnd
                         )}`}
                       </Text>
                     </View>
+
                     <View style={styles.locationContainer}>
-                      <Icon name="room" size={16} color="#666666" />
+                      <Icon name="location-on" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionLocation}>
-                        {`${session.EventSession?.sessionLocation || "N/A"}`}
+                        {session.EventSession?.sessionLocation || "N/A"}
                       </Text>
                     </View>
                   </View>
+
                   {processingSession === session.EventSession?._id ? (
-                    <ActivityIndicator size="small" color="#28A745" />
+                    <ActivityIndicator size="small" color="#4CAF50" />
                   ) : (
                     <TouchableOpacity
                       style={[
@@ -270,30 +315,32 @@ export default function ScanResult({ route }) {
                       onPress={() =>
                         !session.isScanned &&
                         isAvailable &&
-                        session.EventSession?._id &&
                         handleSessionScan(session.EventSession._id)
                       }
                       disabled={session.isScanned || !isAvailable}
                     >
-                      <Text
-                        style={[
-                          styles.buttonText,
-                          session.isScanned && styles.scannedButtonText,
-                          !isAvailable &&
-                            !session.isScanned &&
-                            styles.unavailableButtonText,
-                        ]}
+                      <LinearGradient
+                        colors={
+                          session.isScanned
+                            ? ["#4CAF50", "#2E7D32"] // Green gradient for scanned
+                            : !isAvailable
+                              ? ["#9E9E9E", "#757575"] // Grey gradient for unavailable
+                              : ["#FFA000", "#F57C00"] // Orange gradient for available
+                        }
+                        style={styles.buttonGradient}
                       >
-                        {session.isScanned
-                          ? "Scanned ✓"
-                          : !isAvailable
-                            ? "Not Available"
-                            : "Enter Session"}
-                      </Text>
+                        <Text style={styles.buttonText}>
+                          {session.isScanned
+                            ? "Scanned ✓"
+                            : !isAvailable
+                              ? "Not Available"
+                              : "Enter Session"}
+                        </Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   )}
                 </View>
-              </View>
+              </LinearGradient>
             );
           })}
         </View>
@@ -302,91 +349,122 @@ export default function ScanResult({ route }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient
+    colors={["#000B19", "#001F3F", "#003366"]}
+    style={styles.container}
+    start={{ x: 0.5, y: 0 }}
+    end={{ x: 0.5, y: 1 }}
+  >
       <StatusBar style="light" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Participant Details</Text>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#1A5276" />
-          <Text style={styles.loadingText}>Loading Event Details...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Participant Details</Text>
         </View>
-      ) : (
-        <>
-          <ScrollView style={styles.scrollView} bounces={false}>
-            {renderParticipantCard()}
-            {!eventDetails?.isScanned && !showSessions && (
-              <View style={styles.centerContent}>
-                {showAnimation ? (
-                  <LottieView
-                    source={successAnimation}
-                    autoPlay
-                    loop={false}
-                    style={styles.animation}
-                  />
-                ) : (
-                  <TouchableOpacity
-                    style={styles.enterButton}
-                    onPress={handleEnterParticipant}
-                  >
-                    <Text style={styles.enterButtonText}>
-                      Enter Participant
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-            {showSessions && renderSessionsCard()}
-            <View style={styles.spacing} />
-          </ScrollView>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.navigationButton}
-              onPress={() => navigation.navigate("Scanner")}
-            >
-              <Text style={styles.navigationButtonText}>Open Scanner</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.navigationButton, styles.homeButton]}
-              onPress={() => navigation.navigate("Homepage")}
-            >
-              <Text style={styles.navigationButtonText}>Home</Text>
-            </TouchableOpacity>
+        {isLoading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.loadingText}>Loading Details...</Text>
           </View>
-        </>
-      )}
-      <Toast />
-    </SafeAreaView>
+        ) : (
+          <>
+            <ScrollView style={styles.scrollView} bounces={false}>
+              {renderParticipantCard()}
+
+              {!eventDetails?.isScanned && !showSessions && (
+                <View style={styles.centerContent}>
+                  {showAnimation ? (
+                    <View style={styles.successContainer}>
+                      <Icon name="check-circle" size={100} color="#4CAF50" />
+                      <Text style={styles.successText}>
+                        Check-in Successful!
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.enterButton}
+                      onPress={handleEnterParticipant}
+                    >
+                      <Icon
+                        name="how-to-reg"
+                        size={24}
+                        color="#FFFFFF"
+                        style={styles.buttonIcon}
+                      />
+                      <Text style={styles.enterButtonText}>
+                        Check In Participant
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {showSessions && renderSessionsCard()}
+              <View style={styles.spacing} />
+            </ScrollView>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.navigationButton}
+                onPress={() => navigation.navigate("Scanner")}
+              >
+                <Icon
+                  name="qr-code-scanner"
+                  size={24}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.navigationButtonText}>Scan Next</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.navigationButton, styles.homeButton]}
+                onPress={() => navigation.navigate("Homepage")}
+              >
+                <Icon
+                  name="home"
+                  size={24}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.navigationButtonText}>Home</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+        <Toast />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
+
+const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F8FB",
-    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight || 0 : 0,
+  },
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
   },
   header: {
-    backgroundColor: "#1A5276",
     padding: 16,
     paddingTop:
       Platform.OS === "android" ? (RNStatusBar.currentHeight || 0) + 16 : 16,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "600",
     color: "#FFFFFF",
+    fontFamily: "Poppins-Bold",
   },
   scrollView: {
     flex: 1,
     padding: 16,
   },
   spacing: {
-    height: 80,
+    height: 100,
   },
   loaderContainer: {
     flex: 1,
@@ -395,86 +473,88 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: "#1A5276",
+    color: "#FFFFFF",
     marginTop: 10,
+    fontFamily: "Poppins-Regular",
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   cardHeader: {
-    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
   participantName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "600",
-    color: "#2C3E50",
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Bold",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  statusText: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
   },
   eventName: {
     fontSize: 18,
-    color: "#2C3E50",
-    marginBottom: 8,
+    color: "#FFFFFF",
+    marginBottom: 16,
+    opacity: 0.9,
+    fontFamily: "Poppins-Medium",
   },
-  ticketContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    flexWrap: "wrap",
-  },
-  ticketText: {
-    fontSize: 14,
-    color: "#666666",
-    marginLeft: 6,
-    marginRight: 12,
-  },
-  ticketCategory: {
-    fontSize: 14,
-    color: "#666666",
-    marginLeft: 6,
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  eventLocation: {
-    fontSize: 14,
-    color: "#666666",
-    marginLeft: 8,
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  registrationDate: {
-    fontSize: 14,
-    color: "#666666",
-    marginLeft: 8,
-  },
-
-  sessionsContainer: {
+  infoContainer: {
+    flexDirection: "column",
     gap: 12,
   },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    marginLeft: 8,
+    opacity: 0.9,
+    fontFamily: "Poppins-Regular",
+  },
+  sessionsTitle: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    marginBottom: 16,
+    marginTop: 24,
+    fontFamily: "Poppins-Bold",
+  },
+  sessionsContainer: {
+    gap: 16,
+  },
   sessionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderLeftWidth: 4,
+    backgroundColor: "#233446", // Solid color
+    borderRadius: 20,
+    padding: 20,
+    elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.84,
+    borderLeftWidth: 4,
+    marginBottom: 16,
   },
   sessionContent: {
-    padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -484,69 +564,86 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sessionName: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#2C3E50",
-    marginBottom: 6,
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    color: "#FFFFFF",
+    marginBottom: 8,
   },
   timeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  locationContainerSession: {
-    flexDirection: "row",
-    alignItems: "center",
+  sessionDate: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    marginLeft: 8,
+    fontFamily: "Poppins-Regular",
+    opacity: 0.8,
   },
   sessionTime: {
     fontSize: 14,
-    color: "#666666",
-    marginLeft: 6,
+    color: "#FFFFFF",
+    marginLeft: 8,
+    fontFamily: "Poppins-Regular",
+    opacity: 0.8,
+  },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   sessionLocation: {
     fontSize: 14,
-    color: "#666666",
-    marginLeft: 6,
+    color: "#FFFFFF",
+    marginLeft: 8,
+    fontFamily: "Poppins-Regular",
+    opacity: 0.8,
   },
   sessionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: "#FFA000",
     minWidth: 120,
+    overflow: "hidden",
+    borderRadius: 12,
+  },
+  buttonGradient: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: "center",
-  },
-  scannedButton: {
-    backgroundColor: "#4CAF50",
-  },
-  unavailableButton: {
-    backgroundColor: "#E0E0E0",
   },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
-  scannedButtonText: {
-    color: "#FFFFFF",
+  scannedButton: {
+    // Additional styles if needed when scanned
   },
-  unavailableButtonText: {
-    color: "#666666",
+  unavailableButton: {
+    // Additional styles if needed when unavailable
   },
   centerContent: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 20,
+    marginVertical: 24,
   },
-  animation: {
-    width: 200,
-    height: 200,
+  successContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 24,
+  },
+  successText: {
+    color: "#4CAF50",
+    fontSize: 20,
+    fontWeight: "600",
+    marginTop: 16,
+    fontFamily: "Poppins-Bold",
   },
   enterButton: {
-    backgroundColor: "#28A745",
+    backgroundColor: "#4CAF50",
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -557,6 +654,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "600",
+    marginLeft: 8,
+    fontFamily: "Poppins-Bold",
+  },
+  buttonIcon: {
+    marginRight: 4,
   },
   buttonContainer: {
     flexDirection: "row",
@@ -564,25 +666,22 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     paddingBottom: Platform.OS === "ios" ? 34 : 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   navigationButton: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#154360",
     paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    borderRadius: 12,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -596,15 +695,23 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+    marginLeft: 8,
+    fontFamily: "Poppins-Bold",
   },
-  sessionsTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#2C3E50",
-    marginBottom: 12,
-    marginTop: 16,
+  noSessionsContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 32,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    padding: 24,
+    borderRadius: 16,
   },
-  iconStyle: {
-    marginRight: 6,
+  noSessionsText: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    marginTop: 12,
+    opacity: 0.7,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
   },
 });

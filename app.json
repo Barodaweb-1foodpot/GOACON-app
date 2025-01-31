@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "eventPartner_app",
+    "name": "BwebEvents",
     "slug": "eventPartner_app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor":"#000",
     "newArchEnabled": false,
     "fonts": [
       {
@@ -15,10 +16,20 @@
       {
         "asset": "./assets/fonts/Poppins-Bold.ttf",
         "family": "Poppins-Bold"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-Medium.ttf",
+        "family": "Poppins-Medium"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-SemiBold.ttf",
+        "family": "Poppins-SemiBold"
       }
     ],
     "splash": {
-  
+      "image":"./assets/app_icon.png",
+      "resizeMode":"contain",
+      "backgroundColor":"#ffffff"
     },
     "ios": {
       "supportsTablet": true,
@@ -26,7 +37,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/app_icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [

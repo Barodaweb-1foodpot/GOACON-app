@@ -1,129 +1,150 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useContext } from "react";
+/* eslint-disable react/prop-types */
+import React, { useContext } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  TouchableWithoutFeedback,
+  Dimensions,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext, useAuthContext } from "../context/AuthContext";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function Homepage() {
   const navigation = useNavigation();
   const { logout } = useContext(AuthContext);
-  const { selectedEventPartner } = useAuthContext();
+  const { user } = useAuthContext();
 
   const handleLogout = () => {
     logout();
-    // navigation.navigate("AuthNavigator");
   };
 
+  const DashboardCard = ({ icon, title, color, onPress }) => (
+    <TouchableOpacity 
+      style={[styles.cardContainer, { backgroundColor: color }]} 
+      onPress={onPress}
+    >
+      <View style={styles.cardIconContainer}>
+        <Icon name={icon} size={48} color="#FFFFFF" />
+      </View>
+      <Text style={styles.cardText}>{title}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <TouchableWithoutFeedback>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Admin Dashboard</Text>
-          <TouchableOpacity style={styles.profileIcon} onPress={handleLogout}>
-            <Icon name="logout" size={24} color="#fff" />
-          </TouchableOpacity>
+    <LinearGradient
+      colors={["#000B19", "#001F3F", "#003366"]}
+      style={styles.container}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
+      {/* Header Section */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greetingText}>Welcome,</Text>
+          <Text style={styles.userName}>{user?.name || 'Admin'}</Text>
         </View>
-
-        <View style={styles.mainContent}>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => {
-              console.log("Navigating to Events");
-              navigation.navigate("Events");
-            }}
-          >
-            <Icon name="event" size={48} color="#4CAF50" />
-            <Text style={styles.cardText}>Events</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => {
-              console.log("Navigating to Participants");
-              navigation.navigate("Participants");
-            }}
-          >
-            <Icon name="group" size={48} color="#FF9800" />
-            <Text style={styles.cardText}>Participants</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={styles.scannerButton}
-          onPress={() => {
-            console.log("Navigating to Scanner");
-            navigation.navigate("Scanner");
-          }}
-        >
-          <Text style={styles.scannerButtonText}>Open Scanner</Text>
+        <TouchableOpacity style={styles.profileIcon} onPress={handleLogout}>
+          <Icon name="logout" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
-    </TouchableWithoutFeedback>
+
+      {/* Main Content with Dashboard Cards */}
+      <View style={styles.mainContent}>
+        <DashboardCard
+          icon="event"
+          title="Event Details"
+          color="#4CAF50"
+          onPress={() => navigation.navigate("Events")}
+        />
+        <DashboardCard
+          icon="group"
+          title="Participants"
+          color="#FF9800"
+          onPress={() => navigation.navigate("Participants")}
+        />
+      </View>
+      <View style={styles.mainContent}>
+        <DashboardCard
+          icon="event-seat"
+          title="Sessions"
+          color="#2196F3"
+          onPress={() => navigation.navigate("SessionDetails")}
+        />
+        <DashboardCard
+          icon="qr-code-scanner"
+          title="Scanner"
+          color="#9C27B0"
+          onPress={() => navigation.navigate("Scanner")}
+        />
+      </View>
+    </LinearGradient>
   );
 }
+
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 60) / 2;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A5276",
-    padding: 20,
+    paddingTop: Platform.OS === "android" ? 25 : 48,
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    paddingTop: 30,
+    marginBottom: 30,
   },
-  title: {
+  greetingText: {
+    fontSize: 18,
+    fontFamily: "Poppins-Regular",
+    color: "#FFFFFF",
+    opacity: 0.7,
+  },
+  userName: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
   },
   profileIcon: {
-    backgroundColor: "#154360",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     padding: 10,
     borderRadius: 50,
   },
   mainContent: {
-    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    marginBottom: 20,
   },
-  card: {
-    flex: 1,
-    height: 150,
-    margin: 10,
-    backgroundColor: "#F2F4F4",
-    borderRadius: 10,
-    justifyContent: "center",
+  cardContainer: {
+    width: cardWidth,
+    borderRadius: 20,
+    padding: 20,
     alignItems: "center",
-    elevation: 5,
+    justifyContent: "center",
+    height: 170,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.84,
+  },
+  cardIconContainer: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 50,
+    padding: 10,
+    marginBottom: 15,
   },
   cardText: {
     marginTop: 10,
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: "Poppins-Bold",
-    color: "#154360",
-  },
-  scannerButton: {
-    marginTop: 30,
-    backgroundColor: "#fff",
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  scannerButtonText: {
-    color: "#154360",
-    fontSize: 18,
-    fontFamily: "Poppins-Bold",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
 });

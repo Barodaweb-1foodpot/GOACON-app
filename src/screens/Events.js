@@ -13,15 +13,17 @@ import {
   Share,
   StatusBar,
   Dimensions,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAuthContext } from "../context/AuthContext";
 import { fetchEventsByPartner } from "../api/eventApi";
 import placeholder from "../../assets/placeholder.jpg";
-import { useNavigation } from '@react-navigation/native';
-import Toast from 'react-native-toast-message';
+import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function Events() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -32,7 +34,6 @@ export default function Events() {
 
   const fetchEvents = async () => {
     setLoading(true);
-    console.log("TEST:", selectedEventPartner);
     const partnerId = userType === "eventUser" ? selectedEventPartner : user;
     try {
       const payload = {
@@ -61,27 +62,38 @@ export default function Events() {
     fetchEvents();
   }, [user, userType, selectedEventPartner]);
 
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    const options = { year: "numeric", month: "short", day: "numeric" };
-    return new Date(date).toLocaleDateString(undefined, options);
-  };
+  const formatDateRange = (startDate, endDate) => {
+    if (!startDate || !endDate) return "N/A";
 
-  const formatTime = (date) => {
-    if (!date) return "N/A";
-    const options = { hour: "2-digit", minute: "2-digit" };
-    return new Date(date).toLocaleTimeString([], options);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const sameDay = start.toDateString() === end.toDateString();
+    const sameMonth = start.getMonth() === end.getMonth();
+    const sameYear = start.getFullYear() === end.getFullYear();
+
+    const formatOptions = { day: "numeric", month: "short" };
+    const startTime = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const endTime = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    if (sameDay) {
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${endTime}`;
+    } else if (sameMonth && sameYear) {
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${end.toLocaleDateString(undefined, formatOptions)} ${endTime}`;
+    } else if (sameYear) {
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} - ${end.toLocaleDateString(undefined, formatOptions)} ${endTime} ${start.getFullYear()}`;
+    } else {
+      return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${startTime} - ${end.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${endTime}`;
+    }
   };
 
   const handleShare = async (event) => {
     try {
-      const message = `✨ **${event?.EventName}** ✨\n\n📅 **Date:** ${formatDate(
-        event.StartDate
-      )}\n⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(
-        event.EndDate
-      )}\n👥 **Participants:** ${event?.NoOfParticipants || 0}\n\n📍 **Location:** ${
-        event.EventLocation
-      }\n🗺️ **Google Maps:** ${event.googleMapLink}\n\nDon't miss out! Join us for this exciting event! #Events #Celebration`;
+      const dateRange = formatDateRange(event.StartDate, event.EndDate);
+      const message = `✨ *${event?.EventName}* ✨
+📅 *Date & Time:* ${dateRange}
+📍 *Location:* ${event.EventLocation}
+🗺️ *Google Maps:* ${event.googleMapLink}`;
 
       await Share.share({
         message,
@@ -97,20 +109,27 @@ export default function Events() {
     }
   };
 
+  const handleViewDetails = (event) => {
+    navigation.navigate("ViewEventDetails", { event });
+  };
+
   const renderEventItem = ({ item, index }) => (
-    <View>
-      <View style={styles.eventCard}>
+    <View style={styles.eventCardWrapper}>
+      <LinearGradient
+        colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
+        style={styles.eventCard}
+      >
         <View style={styles.imageContainer}>
           <Image source={placeholder} style={styles.placeholderImage} />
           <Image
             source={
               item.EventImage && item.EventImage !== "null"
                 ? {
-                    uri: `https://serverhiindia.barodaweb.org/${item.EventImage}`,
+                    uri: `https://server.bwebevents.com/${item.EventImage}`,
                   }
                 : placeholder
             }
-            style={[styles.eventImage]}
+            style={styles.eventImage}
             resizeMode="cover"
           />
         </View>
@@ -118,36 +137,16 @@ export default function Events() {
         <View style={styles.eventContent}>
           <Text style={styles.eventTitle}>{item.EventName}</Text>
 
-          <View style={styles.categoryContainer}>
-            {item?.eventCategoryDetails?.map((data, index) => (
-              <View key={index} style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{data.category}</Text>
-              </View>
-            ))}
-          </View>
-
           <View style={styles.infoContainer}>
             <View style={styles.infoRow}>
-              <Icon name="group" size={20} color="#2C3E50" />
+              <Icon name="event" size={20} color="#FFFFFF" />
               <Text style={styles.infoText}>
-                {item.NoOfParticipants || 0} Participants
+                {formatDateRange(item.StartDate, item.EndDate)}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
-              <Icon name="event" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>{formatDate(item.StartDate)}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Icon name="schedule" size={20} color="#2C3E50" />
-              <Text style={styles.infoText}>
-                {formatTime(item.StartDate)} - {formatTime(item.EndDate)}
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Icon name="location-on" size={20} color="#2C3E50" />
+              <Icon name="location-on" size={20} color="#FFFFFF" />
               <TouchableOpacity
                 onPress={() => Linking.openURL(item.googleMapLink)}
                 style={styles.locationContainer}
@@ -157,72 +156,72 @@ export default function Events() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.shareButton}
-            onPress={() => handleShare(item)}
-          >
-            <Icon name="share" size={20} color="#FFFFFF" />
-            <Text style={styles.shareButtonText}>Share Event</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={styles.shareButton}
+              onPress={() => handleShare(item)}
+            >
+              <LinearGradient
+                colors={["#4CAF50", "#2E7D32"]}
+                style={styles.buttonGradient}
+              >
+                <Icon name="share" size={20} color="#FFFFFF" />
+                <Text style={styles.buttonText}>Share Event</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.viewDetailsButton}
+              onPress={() => handleViewDetails(item)}
+            >
+              <LinearGradient
+                colors={["#2196F3", "#1976D2"]}
+                style={styles.buttonGradient}
+              >
+                <Icon name="info" size={20} color="#FFFFFF" />
+                <Text style={styles.buttonText}>View Details</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
       {index < events.length - 1 && <View style={styles.separator} />}
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A5276" />
+    <LinearGradient colors={["#000B19", "#001F3F", "#003366"]} style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000B19" />
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Events</Text>
       </View>
 
-      <View style={styles.content}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1A5276" />
-            <Text style={styles.loadingText}>Loading events...</Text>
-          </View>
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : events.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Icon name="event-busy" size={60} color="#1A5276" />
-            <Text style={styles.emptyText}>No events available</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={events}
-            keyExtractor={(item) => item._id}
-            renderItem={renderEventItem}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+      <FlatList
+        data={events}
+        keyExtractor={(item) => item._id}
+        renderItem={renderEventItem}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+      />
+
       <Toast />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A5276",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 45,
-    paddingBottom: 20,
-    backgroundColor: "#1A5276",
+    paddingTop: Platform.OS === "android" ? 25 : 48,
+    paddingBottom: 15,
   },
   title: {
     fontSize: 24,
@@ -232,44 +231,42 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 8,
+    padding: 8,
   },
   content: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    paddingTop: 10,
-    overflow: "hidden", 
+    overflow: "hidden",
   },
-  
   listContainer: {
     padding: 16,
   },
+  eventCardWrapper: {
+    marginBottom: 20,
+  },
   eventCard: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 8,
     overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   separator: {
     height: 1,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "rgba(255,255,255,0.1)",
     marginVertical: 20,
     marginHorizontal: 10,
-    opacity: 0.7,
   },
   imageContainer: {
     position: "relative",
     width: "100%",
     height: 200,
-    backgroundColor: "#E0E0E0",
+  },
+  imageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
   },
   placeholderImage: {
     position: "absolute",
@@ -278,7 +275,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   eventImage: {
-    position: "absolute",
     width: "100%",
     height: "100%",
   },
@@ -288,7 +284,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 22,
     fontFamily: "Poppins-SemiBold",
-    color: "#2C3E50",
+    color: "#FFFFFF",
     marginBottom: 12,
     lineHeight: 30,
   },
@@ -298,7 +294,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   categoryBadge: {
-    backgroundColor: "#1A5276",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -311,24 +306,19 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
   },
   infoContainer: {
-    backgroundColor: "#F0F4F8",
-    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 12,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   infoText: {
     fontSize: 15,
-    color: "#2C3E50",
+    color: "#FFFFFF",
     marginLeft: 12,
     fontFamily: "Poppins-Regular",
     flex: 1,
@@ -338,22 +328,30 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 15,
-    color: "#1A5276",
+    color: "#FFFFFF",
     marginLeft: 12,
     fontFamily: "Poppins-Regular",
     textDecorationLine: "underline",
+    marginTop:10,
+  },
+  buttonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   shareButton: {
-    backgroundColor: "#1A5276",
+    flex: 0.48,
+  },
+  viewDetailsButton: {
+    flex: 0.48,
+  },
+  buttonGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     padding: 14,
     borderRadius: 12,
-    marginTop: 8,
-    transition: 'background-color 0.3s ease',   
   },
-  shareButtonText: {
+  buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: "Poppins-Medium",
@@ -363,12 +361,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F6FA",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: "#1A5276",
+    color: "#FFFFFF",
     fontFamily: "Poppins-Medium",
   },
   emptyContainer: {
@@ -376,11 +373,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 32,
-    backgroundColor: "#F5F6FA",
   },
   emptyText: {
     fontSize: 18,
-    color: "#1A5276",
+    color: "#FFFFFF",
     fontFamily: "Poppins-Medium",
     marginTop: 16,
     textAlign: "center",
