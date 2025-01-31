@@ -29,6 +29,7 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import { LinearGradient } from "expo-linear-gradient"; // Import LinearGradient
 
 // Enable LayoutAnimation on Android
 if (
@@ -127,6 +128,11 @@ export default function SessionDetails() {
       setEvents(formattedEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
+      Toast.show({
+        type: "error",
+        text1: "Fetch Failed",
+        text2: "Unable to fetch events.",
+      });
     } finally {
       setLoadingEvents(false);
     }
@@ -225,229 +231,241 @@ export default function SessionDetails() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#1A5276" />
+      {/* Replace the main container View with LinearGradient */}
+      <LinearGradient
+        colors={["#000B19", "#001F3F", "#003366"]}
+        style={styles.gradientContainer}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent
+        />
 
-        {/* Header Section */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessible={true}
-            accessibilityLabel="Go back"
-          >
-            <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.title}>
-            {eventValue
-              ? `${events.find((e) => e.value === eventValue)?.label || ""}`
-              : "Session Details"}
-          </Text>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setFiltersVisible(!filtersVisible)}
-            accessible={true}
-            accessibilityLabel="Toggle filters"
-          >
-            <Icon name="tune" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.container}>
+          {/* Header Section */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              accessible={true}
+              accessibilityLabel="Go back"
+            >
+              <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.title}>
+              {eventValue
+                ? `${events.find((e) => e.value === eventValue)?.label || ""}`
+                : "Session Details"}
+            </Text>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setFiltersVisible(!filtersVisible)}
+              accessible={true}
+              accessibilityLabel="Toggle filters"
+            >
+              <Icon name="tune" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
 
-        {/* Content Section */}
-        <View style={styles.content}>
-          {/* Filters Section */}
-          {filtersVisible && (
-            <View style={[styles.filtersContainer, { zIndex: dropdownZIndex }]}>
-              <View style={styles.dropdownsWrapper}>
-                {/* Event Dropdown */}
-                <DropDownPicker
-                  open={eventOpen}
-                  value={eventValue}
-                  items={events}
-                  setOpen={handleEventOpen}
-                  setValue={setEventValue}
-                  setItems={setEvents}
-                  placeholder="Select Event"
-                  style={styles.dropdown}
-                  containerStyle={styles.dropdownContainer}
-                  listItemContainerStyle={styles.listItemContainer}
-                  dropDownContainerStyle={styles.dropDownContainerStyle}
-                  itemSeparator={true}
-                  itemSeparatorStyle={styles.itemSeparator}
-                  zIndex={3000}
-                  listMode="SCROLLVIEW"
-                  accessible={true}
-                  accessibilityLabel="Select Event"
-                />
-
-                {/* Session Dropdown */}
-                <View style={{ marginTop: 10 }}>
+          {/* Content Section */}
+          <View style={styles.content}>
+            {/* Filters Section */}
+            {filtersVisible && (
+              <View style={[styles.filtersContainer, { zIndex: dropdownZIndex }]}>
+                <View style={styles.dropdownsWrapper}>
+                  {/* Event Dropdown */}
                   <DropDownPicker
-                    open={sessionOpen}
-                    value={sessionValue}
-                    items={[
-                      { label: "All Sessions", value: null },
-                      ...filteredSessions.map((session) => ({
-                        label: session.sessionName,
-                        value: session._id,
-                      })),
-                    ]}
-                    setOpen={handleSessionOpen}
-                    setValue={setSessionValue}
-                    setItems={() => {}}
-                    placeholder="Select Session"
+                    open={eventOpen}
+                    value={eventValue}
+                    items={events}
+                    setOpen={handleEventOpen}
+                    setValue={setEventValue}
+                    setItems={setEvents}
+                    placeholder="Select Event"
                     style={styles.dropdown}
                     containerStyle={styles.dropdownContainer}
                     listItemContainerStyle={styles.listItemContainer}
                     dropDownContainerStyle={styles.dropDownContainerStyle}
                     itemSeparator={true}
                     itemSeparatorStyle={styles.itemSeparator}
-                    zIndex={2000}
+                    zIndex={3000}
                     listMode="SCROLLVIEW"
-                    disabled={!eventValue}
                     accessible={true}
-                    accessibilityLabel="Select Session"
+                    accessibilityLabel="Select Event"
                   />
+
+                  {/* Session Dropdown */}
+                  <View style={{ marginTop: 10 }}>
+                    <DropDownPicker
+                      open={sessionOpen}
+                      value={sessionValue}
+                      items={[
+                        { label: "All Sessions", value: null },
+                        ...filteredSessions.map((session) => ({
+                          label: session.sessionName,
+                          value: session._id,
+                        })),
+                      ]}
+                      setOpen={handleSessionOpen}
+                      setValue={setSessionValue}
+                      setItems={() => {}}
+                      placeholder="Select Session"
+                      style={styles.dropdown}
+                      containerStyle={styles.dropdownContainer}
+                      listItemContainerStyle={styles.listItemContainer}
+                      dropDownContainerStyle={styles.dropDownContainerStyle}
+                      itemSeparator={true}
+                      itemSeparatorStyle={styles.itemSeparator}
+                      zIndex={2000}
+                      listMode="SCROLLVIEW"
+                      disabled={!eventValue}
+                      accessible={true}
+                      accessibilityLabel="Select Session"
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* Search Bar */}
-          {eventValue && !filtersVisible && (
-            <View style={styles.searchContainer}>
-              <Icon
-                name="search"
-                size={24}
-                color="#666"
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search sessions..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                returnKeyType="search"
-                placeholderTextColor="#999"
-                accessible={true}
-                accessibilityLabel="Search sessions"
-              />
-            </View>
-          )}
-
-          {/* Counts Display */}
-          {eventValue && (
-            <View style={styles.countsContainer}>
-              {!sessionValue ? (
-                // Display only total sessions count
-                <CountCard
-                  title="Total Sessions"
-                  count={totalSessions}
-                  color="#1A5276"
+            {/* Search Bar */}
+            {eventValue && !filtersVisible && (
+              <View style={styles.searchContainer}>
+                <Icon
+                  name="search"
+                  size={24}
+                  color="#666"
+                  style={styles.searchIcon}
                 />
-              ) : (
-                // Display participant counts
-                <>
-                  <CountCard
-                    title="Total"
-                    count={totalParticipants}
-                    color="#1A5276"
-                  />
-                  <CountCard
-                    title="Scanned"
-                    count={scannedParticipants}
-                    color="#4CAF50"
-                  />
-                  <CountCard
-                    title="Not Scan"
-                    count={notScannedParticipants}
-                    color="#FFA000"
-                  />
-                </>
-              )}
-            </View>
-          )}
-
-          {/* Sessions List */}
-          <View style={styles.listWrapper}>
-            {loadingSessions ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#1A5276" />
-                <Text style={styles.loadingText}>Loading sessions...</Text>
-              </View>
-            ) : eventValue ? (
-              <FlatList
-                ref={flatListRef}
-                data={filteredSessions}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.sessionCard,
-                      sessionValue === item._id && styles.selectedSessionCard,
-                    ]}
-                    onPress={() => handleSessionPress(item._id)}
-                    activeOpacity={0.8}
-                    accessible={true}
-                    accessibilityLabel={`Toggle session ${item.sessionName}`}
-                  >
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.sessionName}>{item.sessionName}</Text>
-                      <Icon
-                        name={
-                          sessionValue === item._id
-                            ? "keyboard-arrow-up"
-                            : "keyboard-arrow-down"
-                        }
-                        size={24}
-                        color="#1A5276"
-                      />
-                    </View>
-                    {/* Expanded Details */}
-                    {sessionValue === item._id && (
-                      <View style={styles.expandedDetails}>
-                        <Text style={styles.detailLabel}>Start Time:</Text>
-                        <Text style={styles.detailText}>
-                          {new Date(item.startTime).toLocaleString()}
-                        </Text>
-                        <Text style={styles.detailLabel}>Location:</Text>
-                        <Text style={styles.detailText}>
-                          {item.sessionLocation}
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Icon name="event-note" size={60} color="#1A5276" />
-                    <Text style={styles.emptyText}>No sessions found</Text>
-                  </View>
-                }
-                contentContainerStyle={styles.listContentContainer}
-                // Handle potential scrollToIndex errors
-                onScrollToIndexFailed={(info) => {
-                  const wait = new Promise((resolve) =>
-                    setTimeout(resolve, 500)
-                  );
-                  wait.then(() => {
-                    flatListRef.current?.scrollToIndex({
-                      index: info.index,
-                      animated: true,
-                    });
-                  });
-                }}
-              />
-            ) : (
-              <View style={styles.infoContainer}>
-                <Text style={styles.infoText}>
-                  Please select filters to view sessions.
-                </Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search sessions..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                  placeholderTextColor="#999"
+                  accessible={true}
+                  accessibilityLabel="Search sessions"
+                />
               </View>
             )}
+
+            {/* Counts Display */}
+            {eventValue && (
+              <View style={styles.countsContainer}>
+                {!sessionValue ? (
+                  // Display only total sessions count
+                  <CountCard
+                    title="Total Sessions"
+                    count={totalSessions}
+                    color="#1A5276"
+                  />
+                ) : (
+                  // Display participant counts
+                  <>
+                    <CountCard
+                      title="Total"
+                      count={totalParticipants}
+                      color="#1A5276"
+                    />
+                    <CountCard
+                      title="Scanned"
+                      count={scannedParticipants}
+                      color="#4CAF50"
+                    />
+                    <CountCard
+                      title="Not Scan"
+                      count={notScannedParticipants}
+                      color="#FFA000"
+                    />
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* Sessions List */}
+            <View style={styles.listWrapper}>
+              {loadingSessions ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#1A5276" />
+                  <Text style={styles.loadingText}>Loading sessions...</Text>
+                </View>
+              ) : eventValue ? (
+                <FlatList
+                  ref={flatListRef}
+                  data={filteredSessions}
+                  keyExtractor={(item) => item._id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.sessionCard,
+                        sessionValue === item._id && styles.selectedSessionCard,
+                      ]}
+                      onPress={() => handleSessionPress(item._id)}
+                      activeOpacity={0.8}
+                      accessible={true}
+                      accessibilityLabel={`Toggle session ${item.sessionName}`}
+                    >
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.sessionName}>{item.sessionName}</Text>
+                        <Icon
+                          name={
+                            sessionValue === item._id
+                              ? "keyboard-arrow-up"
+                              : "keyboard-arrow-down"
+                          }
+                          size={24}
+                          color="#1A5276"
+                        />
+                      </View>
+                      {/* Expanded Details */}
+                      {sessionValue === item._id && (
+                        <View style={styles.expandedDetails}>
+                          <Text style={styles.detailLabel}>Start Time:</Text>
+                          <Text style={styles.detailText}>
+                            {new Date(item.startTime).toLocaleString()}
+                          </Text>
+                          <Text style={styles.detailLabel}>Location:</Text>
+                          <Text style={styles.detailText}>
+                            {item.sessionLocation}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                      <Icon name="event-note" size={60} color="#1A5276" />
+                      <Text style={styles.emptyText}>No sessions found</Text>
+                    </View>
+                  }
+                  contentContainerStyle={styles.listContentContainer}
+                  // Handle potential scrollToIndex errors
+                  onScrollToIndexFailed={(info) => {
+                    const wait = new Promise((resolve) =>
+                      setTimeout(resolve, 500)
+                    );
+                    wait.then(() => {
+                      flatListRef.current?.scrollToIndex({
+                        index: info.index,
+                        animated: true,
+                      });
+                    });
+                  }}
+                />
+              ) : (
+                <View style={styles.infoContainer}>
+                  <Text style={styles.infoText}>
+                    Please select filters to view sessions.
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
     </TouchableWithoutFeedback>
   );
 }
@@ -460,9 +478,11 @@ const CountCard = React.memo(({ title, count, color }) => (
 ));
 
 const styles = StyleSheet.create({
+  gradientContainer: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#1A5276",
   },
   header: {
     flexDirection: "row",
@@ -470,23 +490,29 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "android" ? 25 : 48,
-    paddingBottom: 5,
-    backgroundColor: "#1A5276",
+    paddingBottom: 15,
+    backgroundColor: "transparent",
   },
-  backButton: {},
-  filterButton: {},
+  backButton: {
+    padding: 10,
+    borderRadius: 20,
+  },
+  filterButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    padding: 8,
+    borderRadius: 20,
+  },
   title: {
     fontSize: 20,
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
     flex: 1,
     textAlign: "center",
+    marginHorizontal: 10,
   },
   content: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    backgroundColor: "transparent",
     paddingHorizontal: 15,
     paddingTop: 15,
   },
@@ -498,20 +524,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dropdown: {
-    borderColor: "#E0E0E0",
+    borderColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
     borderWidth: 1,
     height: 45,
-    backgroundColor: "#FFFFFF",
   },
   dropdownContainer: {
     height: 45,
   },
   dropDownContainerStyle: {
-    borderColor: "#E0E0E0",
-    backgroundColor: "#FFFFFF",
+    borderColor: "rgba(255, 255, 255, 0.1)",
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
   },
   listItemContainer: {
     height: 45,
@@ -524,23 +549,24 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: "#001F3F", 
+    borderRadius: 20,
     paddingHorizontal: 15,
     marginBottom: 10,
     height: 45,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#003366",
   },
   searchIcon: {
     marginRight: 10,
+    color: "#FFFFFF",
   },
   searchInput: {
     flex: 1,
     paddingVertical: 8,
     fontFamily: "Poppins-Regular",
     fontSize: 15,
-    color: "#2C3E50",
+    color: "#FFFFFF",
   },
   countsContainer: {
     flexDirection: "row",
@@ -550,9 +576,14 @@ const styles = StyleSheet.create({
   },
   countCard: {
     flex: 1,
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 20,
+    padding: 8,
     alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.84,
   },
   countTitle: {
     color: "#FFFFFF",
@@ -567,26 +598,26 @@ const styles = StyleSheet.create({
   },
   listWrapper: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
+    backgroundColor: "transparent",
     paddingHorizontal: 15,
     paddingTop: 10,
   },
   sessionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: "#002D5C", 
+    borderRadius: 20,
     padding: 15,
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
     borderLeftWidth: 4,
     borderLeftColor: "#FFA000",
   },
   selectedSessionCard: {
-    borderLeftColor: "#1A5276",
-    backgroundColor: "#E8F4FA",
+    borderLeftColor: "#4CAF50",
+    backgroundColor: "#002D5C", 
   },
   cardHeader: {
     flexDirection: "row",
@@ -596,25 +627,25 @@ const styles = StyleSheet.create({
   sessionName: {
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
-    color: "#2C3E50",
+    color: "#FFFFFF",
     flex: 1,
   },
   expandedDetails: {
     marginTop: 10,
-    backgroundColor: "#F0F8FF",
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: "#001428", // Solid darker color instead of opacity
+    borderRadius: 16,
+    padding: 15,
   },
   detailLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    color: "#1A5276",
+    color: "#FFFFFF",
     marginTop: 5,
   },
   detailText: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "#555555",
+    color: "#FFFFFF",
     marginTop: 2,
   },
   listContentContainer: {
@@ -630,7 +661,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "#1A5276",
+    color: "#FFFFFF",
+    opacity: 0.9,
   },
   infoContainer: {
     flex: 1,
@@ -640,7 +672,8 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
-    color: "#2C3E50",
+    color: "#FFFFFF",
+    opacity: 0.9,
   },
   loadingContainer: {
     flex: 1,
@@ -651,6 +684,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "#1A5276",
+    color: "#FFFFFF",
+    opacity: 0.9,
   },
 });

@@ -16,10 +16,18 @@
       {
         "asset": "./assets/fonts/Poppins-Bold.ttf",
         "family": "Poppins-Bold"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-Medium.ttf",
+        "family": "Poppins-Medium"
+      },
+      {
+        "asset": "./assets/fonts/Poppins-SemiBold.ttf",
+        "family": "Poppins-SemiBold"
       }
     ],
     "splash": {
-      "image":"./assets/logo.png",
+      "image":"./assets/app_icon.png",
       "resizeMode":"contain",
       "backgroundColor":"#ffffff"
     },

@@ -12,8 +12,10 @@ import {
   Dimensions,
   Platform,
   Animated,
+  StatusBar,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { LinearGradient } from "expo-linear-gradient";
 import placeholder from "../../assets/placeholder.jpg";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -43,13 +45,6 @@ export default function ViewEventDetails() {
     ]).start();
   }, []);
 
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return new Date(date).toLocaleDateString(undefined, options);
-  };
-
-  // Add the formatDateRange function
   const formatDateRange = (startDate, endDate) => {
     if (!startDate || !endDate) return "N/A";
 
@@ -60,41 +55,35 @@ export default function ViewEventDetails() {
     const sameMonth = start.getMonth() === end.getMonth();
     const sameYear = start.getFullYear() === end.getFullYear();
 
+    const formatOptions = { day: "numeric", month: "short" };
+    const startTime = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const endTime = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
     if (sameDay) {
-      return start.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${endTime}`;
     } else if (sameMonth && sameYear) {
-      return `${start.getDate()} & ${end.getDate()} ${start.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`;
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${end.toLocaleDateString(undefined, formatOptions)} ${endTime}`;
     } else if (sameYear) {
-      return `${start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${start.getFullYear()}`;
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} - ${end.toLocaleDateString(undefined, formatOptions)} ${endTime} ${start.getFullYear()}`;
     } else {
-      return `${start.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+      return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${startTime} - ${end.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${endTime}`;
     }
   };
 
-  const formatTime = (date) => {
-    if (!date) return "N/A";
-    const options = { hour: "2-digit", minute: "2-digit" };
-    return new Date(date).toLocaleTimeString([], options);
-  };
-
-  const handleShare = async () => {
+  const handleShare = async (event) => {
     try {
       const dateRange = formatDateRange(event.StartDate, event.EndDate);
-      const message = `✨ **${event?.EventName}** ✨
-📅 **Date:** ${dateRange}
-⏰ **Time:** ${formatTime(event?.StartDate)} - ${formatTime(event.EndDate)}
-📍 **Location:** ${event.EventLocation}
-🗺️ **Google Maps:** ${event.googleMapLink}
-
-Don't miss out! Join us for this exciting event!
-
-🔗 Register: https://participant.bwebevents.com/register`;
+      const message = `✨ *${event?.EventName}* ✨
+📅 *Date & Time:* ${dateRange}
+📍 *Location:* ${event.EventLocation}
+🗺️ *Google Maps:* ${event.googleMapLink}`;
 
       await Share.share({
         message,
         title: event.EventName,
       });
     } catch (error) {
+      console.error("Error sharing event:", error);
       Toast.show({
         type: "error",
         text1: "Share Failed",
@@ -102,20 +91,25 @@ Don't miss out! Join us for this exciting event!
       });
     }
   };
-
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <LinearGradient
+      colors={["#000B19", "#001F3F", "#003366"]}
+      style={styles.container}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#000B19" />
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
+            style={styles.backButton}
           >
             <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.title}>{event.EventName}</Text>
         </View>
-
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Event Image */}
         <Animated.View 
           style={[
@@ -150,34 +144,28 @@ Don't miss out! Join us for this exciting event!
           {/* Date and Time Card */}
           <View style={styles.cardContainer}>
             <View style={styles.dateTimeRow}>
-              <View style={styles.dateContainer}>
-                <Icon name="event" size={24} color="#1A5276" />
+              <View style={styles.infoContainer}>
+                <View style={styles.iconContainer}>
+                  <Icon name="event" size={24} color="#FFFFFF" />
+                </View>
                 <View style={styles.textContainer}>
-                  <Text style={styles.label}>Date</Text>
-                  {/* Use formatDateRange instead of formatDate */}
                   <Text style={styles.value}>{formatDateRange(event.StartDate, event.EndDate)}</Text>
                 </View>
               </View>
-              <View style={styles.timeContainer}>
-                <Icon name="access-time" size={24} color="#1A5276" />
-                <View style={styles.textContainer}>
-                  <Text style={styles.label}>Time</Text>
-                  <Text style={styles.value}>
-                    {formatTime(event.StartDate)} - {formatTime(event.EndDate)}
-                  </Text>
-                </View>
-              </View>
+        
             </View>
           </View>
 
           {/* About Event */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About Event</Text>
-            <Text style={styles.description}>
-              {event.EventDescreption
-                ? event.EventDescreption.replace(/<[^>]+>/g, "")
-                : "No description available."}
-            </Text>
+            <View style={styles.contentCard}>
+              <Text style={styles.description}>
+                {event.EventDescreption
+                  ? event.EventDescreption.replace(/<[^>]+>/g, "")
+                  : "No description available."}
+              </Text>
+            </View>
           </View>
 
           {/* Location */}
@@ -187,9 +175,11 @@ Don't miss out! Join us for this exciting event!
               style={styles.locationCard}
               onPress={() => Linking.openURL(event.googleMapLink)}
             >
-              <Icon name="location-on" size={24} color="#1A5276" />
+              <View style={styles.iconContainer}>
+                <Icon name="location-on" size={24} color="#FFFFFF" />
+              </View>
               <Text style={styles.locationText}>{event.EventLocation}</Text>
-              <Icon name="open-in-new" size={20} color="#666" />
+              <Icon name="open-in-new" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -202,7 +192,7 @@ Don't miss out! Join us for this exciting event!
                   <Text style={styles.sessionNumber}>{(index + 1).toString().padStart(2, '0')}</Text>
                   <View style={styles.sessionContent}>
                     <Text style={styles.sessionName}>{session.sessionName}</Text>
-                    <Text style={styles.sessionDuration}>45 minutes</Text>
+                    
                   </View>
                 </View>
               ))
@@ -229,9 +219,7 @@ Don't miss out! Join us for this exciting event!
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.registerButton}
-          onPress={() =>
-            Linking.openURL("https://participant.bwebevents.com/register")
-          }
+          onPress={() => Linking.openURL("https://participant.bwebevents.com/register")}
         >
           <Icon name="how-to-reg" size={20} color="#FFFFFF" />
           <Text style={styles.buttonText}>Register Now</Text>
@@ -239,14 +227,13 @@ Don't miss out! Join us for this exciting event!
       </Animated.View>
 
       <Toast />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   scrollContainer: {
     paddingBottom: 100,
@@ -255,9 +242,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 20 : 50,
+    paddingTop: Platform.OS === "android" ? 20 : 48,
     paddingBottom: 15,
-    backgroundColor: "#1A5276",
+  },
+  backButton: {
+    padding: 10,
   },
   title: {
     fontSize: 20,
@@ -267,10 +256,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageContainer: {
-    position: "relative",
     width: "100%",
     height: 200,
-    backgroundColor: "#E0E0E0"
+    backgroundColor: "#E0E0E0",
   },
   eventImage: {
     width: "100%",
@@ -280,8 +268,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   cardContainer: {
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 20,
     padding: 20,
     marginBottom: 25,
   },
@@ -289,54 +277,62 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: 20,
   },
-  dateContainer: {
+  infoContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
-  timeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  iconContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 50,
+    padding: 10,
   },
   textContainer: {
     marginLeft: 15,
   },
   label: {
     fontSize: 14,
-    color: "#666",
+    color: "#FFFFFF",
+    opacity: 0.7,
     fontFamily: "Poppins-Regular",
     marginBottom: 4,
   },
   value: {
     fontSize: 16,
-    color: "#333",
-    fontFamily: "Poppins-Medium",
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Regular",
   },
   section: {
     marginBottom: 25,
   },
   sectionTitle: {
     fontSize: 18,
-    color: "#1A5276",
+    color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     marginBottom: 15,
   },
+  contentCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 20,
+    padding: 20,
+  },
   description: {
     fontSize: 16,
-    color: "#444",
+    color: "#FFFFFF",
+    opacity: 0.9,
     fontFamily: "Poppins-Regular",
     lineHeight: 24,
   },
   locationCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   locationText: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: "#FFFFFF",
     fontFamily: "Poppins-Medium",
     marginLeft: 15,
     marginRight: 10,
@@ -344,14 +340,14 @@ const styles = StyleSheet.create({
   sessionCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 10,
   },
   sessionNumber: {
     fontSize: 16,
-    color: "#1A5276",
+    color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     marginRight: 15,
   },
@@ -360,18 +356,20 @@ const styles = StyleSheet.create({
   },
   sessionName: {
     fontSize: 16,
-    color: "#333",
+    color: "#FFFFFF",
     fontFamily: "Poppins-Medium",
     marginBottom: 4,
   },
   sessionDuration: {
     fontSize: 14,
-    color: "#666",
+    color: "#FFFFFF",
+    opacity: 0.7,
     fontFamily: "Poppins-Regular",
   },
   noContent: {
     fontSize: 16,
-    color: "#666",
+    color: "#FFFFFF",
+    opacity: 0.7,
     fontFamily: "Poppins-Regular",
     fontStyle: "italic",
   },
@@ -383,27 +381,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 20,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#EEEEEE",
+    backgroundColor: "rgba(0, 11, 25, 0.9)",
   },
   shareButton: {
-    backgroundColor: "#1A5276",
+    backgroundColor: "#4CAF50",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 20,
     flex: 0.48,
+    elevation: 8,
   },
   registerButton: {
-    backgroundColor: "#2E86C1",
+    backgroundColor: "#2196F3",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 20,
     flex: 0.48,
+    elevation: 8,
   },
   buttonText: {
     color: "#FFFFFF",

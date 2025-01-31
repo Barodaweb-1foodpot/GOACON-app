@@ -30,6 +30,8 @@ export default function MainNavigator() {
         await Font.loadAsync({
           Poppins: require("../../assets/fonts/Poppins-Regular.ttf"),
           "Poppins-Bold": require("../../assets/fonts/Poppins-Bold.ttf"),
+          "Poppins-SemiBold": require("../../assets/fonts/Poppins-SemiBold.ttf"),
+          "Poppins-Medium": require("../../assets/fonts/Poppins-Medium.ttf"),
         });
         setFontsLoaded(true);
         await fetchUser();
@@ -68,11 +70,7 @@ export default function MainNavigator() {
           <Stack.Screen name="Participants" component={Participants} />
           <Stack.Screen name="EventSession" component={EventSession} />
           <Stack.Screen name="SessionDetails" component={SessionDetails} />
-          <Stack.Screen
-            name="ViewEventDetails"
-            component={ViewEventDetails}
-            options={{ gestureEnabled: true }}
-          />
+          <Stack.Screen name="ViewEventDetails" component={ViewEventDetails} />
         </>
       )}
     </Stack.Navigator>
