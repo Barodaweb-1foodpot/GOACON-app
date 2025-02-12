@@ -12,6 +12,8 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthContext, useAuthContext } from "../context/AuthContext";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+
 
 export default function Homepage() {
   const navigation = useNavigation();
@@ -35,12 +37,15 @@ export default function Homepage() {
   );
 
   return (
+    
     <LinearGradient
       colors={["#000B19", "#001F3F", "#003366"]}
       style={styles.container}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
     >
+      <StatusBar style="light" hidden={false} backgroundColor="transparent" translucent />
+
       {/* Header Section */}
       <View style={styles.header}>
         <View>

@@ -24,7 +24,7 @@ export default function MainNavigator() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  useEffect(() => {
+  useEffect(() => { 
     const loadFontsAndUser = async () => {
       try {
         await Font.loadAsync({

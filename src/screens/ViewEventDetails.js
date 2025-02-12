@@ -120,7 +120,7 @@ export default function ViewEventDetails() {
             }
           ]}
         >
-          <Image
+          {/* <Image
             source={
               event.EventImage && event.EventImage !== "null"
                 ? { uri: `https://server.bwebevents.com/${event.EventImage}` }
@@ -128,7 +128,20 @@ export default function ViewEventDetails() {
             }
             style={styles.eventImage}
             resizeMode="cover"
-          />
+          /> */}
+
+          <Image source={placeholder} style={styles.placeholderImage} />
+                    <Image
+                      source={
+                        event.EventImage && event.EventImage !== "null"
+                          ? {
+                              uri: `https://server.bwebevents.com/${event.EventImage}`,
+                            }
+                          : placeholder
+                      }
+                      style={styles.eventImage}
+                      resizeMode="cover"
+                    />
         </Animated.View>
 
         {/* Event Information */}
@@ -217,13 +230,13 @@ export default function ViewEventDetails() {
           <Icon name="share" size={20} color="#FFFFFF" />
           <Text style={styles.buttonText}>Share Event</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.registerButton}
           onPress={() => Linking.openURL("https://participant.bwebevents.com/register")}
         >
           <Icon name="how-to-reg" size={20} color="#FFFFFF" />
           <Text style={styles.buttonText}>Register Now</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </Animated.View>
 
       <Toast />
@@ -259,6 +272,12 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
     backgroundColor: "#E0E0E0",
+  },
+  placeholderImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0.5,
   },
   eventImage: {
     width: "100%",
@@ -379,8 +398,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
+    justifyContent: "center",
+    padding: 10,
     backgroundColor: "rgba(0, 11, 25, 0.9)",
   },
   shareButton: {
