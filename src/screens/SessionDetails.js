@@ -274,7 +274,9 @@ export default function SessionDetails() {
           <View style={styles.content}>
             {/* Filters Section */}
             {filtersVisible && (
-              <View style={[styles.filtersContainer, { zIndex: dropdownZIndex }]}>
+              <View
+                style={[styles.filtersContainer, { zIndex: dropdownZIndex }]}
+              >
                 <View style={styles.dropdownsWrapper}>
                   {/* Event Dropdown */}
                   <DropDownPicker
@@ -297,7 +299,7 @@ export default function SessionDetails() {
                     accessibilityLabel="Select Event"
                   />
 
-                  {/* Session Dropdown */}
+                  {/* Session Dropdown
                   <View style={{ marginTop: 10 }}>
                     <DropDownPicker
                       open={sessionOpen}
@@ -325,7 +327,7 @@ export default function SessionDetails() {
                       accessible={true}
                       accessibilityLabel="Select Session"
                     />
-                  </View>
+                  </View> */}
                 </View>
               </View>
             )}
@@ -409,7 +411,9 @@ export default function SessionDetails() {
                       accessibilityLabel={`Toggle session ${item.sessionName}`}
                     >
                       <View style={styles.cardHeader}>
-                        <Text style={styles.sessionName}>{item.sessionName}</Text>
+                        <Text style={styles.sessionName}>
+                          {item.sessionName}
+                        </Text>
                         <Icon
                           name={
                             sessionValue === item._id
@@ -423,14 +427,26 @@ export default function SessionDetails() {
                       {/* Expanded Details */}
                       {sessionValue === item._id && (
                         <View style={styles.expandedDetails}>
-                          <Text style={styles.detailLabel}>Start Time:</Text>
-                          <Text style={styles.detailText}>
-                            {new Date(item.startTime).toLocaleString()}
-                          </Text>
-                          <Text style={styles.detailLabel}>Location:</Text>
-                          <Text style={styles.detailText}>
-                            {item.sessionLocation}
-                          </Text>
+                          <View style={styles.locationContainer}>
+                            <Icon name="event" size={20} color="#FFFFFF" />
+                            <Text style={styles.detailText}>
+                              {new Date(item.startTime).toLocaleDateString()}{" "}
+                              {new Date(item.startTime).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </Text>
+                          </View>
+                          <View style={styles.locationContainer}>
+                            <Icon
+                              name="location-on"
+                              size={20}
+                              color="#FFFFFF"
+                            />
+                            <Text style={styles.detailText}>
+                              {item.sessionLocation}
+                            </Text>
+                          </View>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -549,7 +565,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#001F3F", 
+    backgroundColor: "#001F3F",
     borderRadius: 20,
     paddingHorizontal: 15,
     marginBottom: 10,
@@ -603,7 +619,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   sessionCard: {
-    backgroundColor: "#002D5C", 
+    backgroundColor: "#002D5C",
     borderRadius: 20,
     padding: 15,
     marginBottom: 12,
@@ -617,7 +633,7 @@ const styles = StyleSheet.create({
   },
   selectedSessionCard: {
     borderLeftColor: "#4CAF50",
-    backgroundColor: "#002D5C", 
+    backgroundColor: "#002D5C",
   },
   cardHeader: {
     flexDirection: "row",
@@ -632,7 +648,7 @@ const styles = StyleSheet.create({
   },
   expandedDetails: {
     marginTop: 10,
-    backgroundColor: "#001428", // Solid darker color instead of opacity
+    backgroundColor: "#001428",
     borderRadius: 16,
     padding: 15,
   },
@@ -675,10 +691,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     opacity: 0.9,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+  locationContainer: {
+    flexDirection: "row",
     alignItems: "center",
+    marginTop: 5,
+    gap: 8,
   },
   loadingText: {
     marginTop: 10,
