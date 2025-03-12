@@ -13,7 +13,9 @@ import {
   Platform,
   Animated,
   StatusBar,
+  StyleSheet as RNStyleSheet,
 } from "react-native";
+import PropTypes from "prop-types";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import placeholder from "../../assets/placeholder.jpg";
@@ -22,11 +24,92 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 
+/* ---------------- Skeleton Loader Component ---------------- */
+const SkeletonLoader = ({ style }) => {
+  const [animation] = React.useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(animation, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: false,
+      })
+    ).start();
+  }, [animation]);
+
+  const translateX = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-300, 300],
+  });
+
+  return (
+    <View style={[style, skeletonStyles.loaderContainer]}>
+      <Animated.View
+        style={{
+          width: "100%",
+          height: "100%",
+          transform: [{ translateX }],
+        }}
+      >
+        <LinearGradient
+          colors={[
+            "rgba(255, 255, 255, 0)",
+            "rgba(255, 255, 255, 0.5)",
+            "rgba(255, 255, 255, 0)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
+SkeletonLoader.propTypes = {
+  style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+};
+
+const skeletonStyles = RNStyleSheet.create({
+  loaderContainer: {
+    backgroundColor: "#333", // dark background for a dark look
+    overflow: "hidden",
+  },
+});
+
+/* ---------------- EventImage Component ---------------- */
+const EventImage = ({ eventImage }) => {
+  const [loaded, setLoaded] = React.useState(false);
+  const imageSource =
+    eventImage && eventImage !== "null"
+      ? { uri: `https://serverhiindia.barodaweb.org/${eventImage}` }
+      : placeholder;
+
+  return (
+    <View style={styles.imageWrapper}>
+      {!loaded && <SkeletonLoader style={RNStyleSheet.absoluteFill} />}
+      <Image
+        source={imageSource}
+        style={[styles.eventImage, { opacity: loaded ? 1 : 0 }]}
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        resizeMode="cover"
+      />
+    </View>
+  );
+};
+
+EventImage.propTypes = {
+  eventImage: PropTypes.string,
+};
+
+/* ---------------- Main Component ---------------- */
 export default function ViewEventDetails() {
   const navigation = useNavigation();
   const route = useRoute();
   const { event } = route.params;
-  
+
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
 
@@ -56,21 +139,41 @@ export default function ViewEventDetails() {
     const sameYear = start.getFullYear() === end.getFullYear();
 
     const formatOptions = { day: "numeric", month: "short" };
-    const startTime = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const endTime = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const startTime = start.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const endTime = end.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     if (sameDay) {
       return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${endTime}`;
     } else if (sameMonth && sameYear) {
-      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${end.toLocaleDateString(undefined, formatOptions)} ${endTime}`;
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${end.toLocaleDateString(
+        undefined,
+        formatOptions
+      )} ${endTime}`;
     } else if (sameYear) {
-      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} - ${end.toLocaleDateString(undefined, formatOptions)} ${endTime} ${start.getFullYear()}`;
+      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} - ${end.toLocaleDateString(
+        undefined,
+        formatOptions
+      )} ${endTime} ${start.getFullYear()}`;
     } else {
-      return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${startTime} - ${end.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${endTime}`;
+      return `${start.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })} ${startTime} - ${end.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })} ${endTime}`;
     }
   };
 
-  const handleShare = async (event) => {
+  const handleShare = async () => {
     try {
       const dateRange = formatDateRange(event.StartDate, event.EndDate);
       const message = `✨ *${event?.EventName}* ✨
@@ -91,6 +194,7 @@ export default function ViewEventDetails() {
       });
     }
   };
+
   return (
     <LinearGradient
       colors={["#000B19", "#001F3F", "#003366"]}
@@ -99,59 +203,38 @@ export default function ViewEventDetails() {
       end={{ x: 0.5, y: 1 }}
     >
       <StatusBar barStyle="light-content" backgroundColor="#000B19" />
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.title}>{event.EventName}</Text>
-        </View>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Event Image */}
-        <Animated.View 
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.title}>{event.EventName}</Text>
+      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Event Image with Skeleton Loader */}
+        <Animated.View
           style={[
             styles.imageContainer,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-            }
+            },
           ]}
         >
-          {/* <Image
-            source={
-              event.EventImage && event.EventImage !== "null"
-                ? { uri: `https://server.bwebevents.com/${event.EventImage}` }
-                : placeholder
-            }
-            style={styles.eventImage}
-            resizeMode="cover"
-          /> */}
-
-          <Image source={placeholder} style={styles.placeholderImage} />
-                    <Image
-                      source={
-                        event.EventImage && event.EventImage !== "null"
-                          ? {
-                              uri: `https://server.bwebevents.com/${event.EventImage}`,
-                            }
-                          : placeholder
-                      }
-                      style={styles.eventImage}
-                      resizeMode="cover"
-                    />
+          <EventImage eventImage={event.EventImage} />
         </Animated.View>
 
         {/* Event Information */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.detailsContainer,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-            }
+            },
           ]}
         >
           {/* Date and Time Card */}
@@ -162,10 +245,11 @@ export default function ViewEventDetails() {
                   <Icon name="event" size={24} color="#FFFFFF" />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={styles.value}>{formatDateRange(event.StartDate, event.EndDate)}</Text>
+                  <Text style={styles.value}>
+                    {formatDateRange(event.StartDate, event.EndDate)}
+                  </Text>
                 </View>
               </View>
-        
             </View>
           </View>
 
@@ -202,10 +286,13 @@ export default function ViewEventDetails() {
             {event.SessionDetails && event.SessionDetails.length > 0 ? (
               event.SessionDetails.map((session, index) => (
                 <View key={session._id} style={styles.sessionCard}>
-                  <Text style={styles.sessionNumber}>{(index + 1).toString().padStart(2, '0')}</Text>
+                  <Text style={styles.sessionNumber}>
+                    {(index + 1).toString().padStart(2, "0")}
+                  </Text>
                   <View style={styles.sessionContent}>
-                    <Text style={styles.sessionName}>{session.sessionName}</Text>
-                    
+                    <Text style={styles.sessionName}>
+                      {session.sessionName}
+                    </Text>
                   </View>
                 </View>
               ))
@@ -217,26 +304,19 @@ export default function ViewEventDetails() {
       </ScrollView>
 
       {/* Action Buttons */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.actionsContainer,
           {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
-          }
+          },
         ]}
       >
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Icon name="share" size={20} color="#FFFFFF" />
           <Text style={styles.buttonText}>Share Event</Text>
         </TouchableOpacity>
-        {/* <TouchableOpacity
-          style={styles.registerButton}
-          onPress={() => Linking.openURL("https://participant.bwebevents.com/register")}
-        >
-          <Icon name="how-to-reg" size={20} color="#FFFFFF" />
-          <Text style={styles.buttonText}>Register Now</Text>
-        </TouchableOpacity> */}
       </Animated.View>
 
       <Toast />
@@ -273,15 +353,19 @@ const styles = StyleSheet.create({
     height: 200,
     backgroundColor: "#E0E0E0",
   },
+  imageWrapper: {
+    width: "100%",
+    height: "100%",
+  },
+  eventImage: {
+    width: "100%",
+    height: "100%",
+  },
   placeholderImage: {
     position: "absolute",
     width: "100%",
     height: "100%",
     opacity: 0.5,
-  },
-  eventImage: {
-    width: "100%",
-    height: "100%",
   },
   detailsContainer: {
     padding: 20,

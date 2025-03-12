@@ -14,6 +14,7 @@ import {
   StatusBar,
   Dimensions,
   Platform,
+  Animated,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,12 +26,86 @@ import Toast from "react-native-toast-message";
 
 const { width } = Dimensions.get("window");
 
+/* ---------------- Skeleton Loader Component ---------------- */
+const SkeletonLoader = ({ style }) => {
+  const [animation] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(animation, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: false,
+      })
+    ).start();
+  }, [animation]);
+
+  const translateX = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-300, 300],
+  });
+
+  return (
+    <View style={[style, skeletonStyles.loaderContainer]}>
+      <Animated.View
+        style={{
+          width: "100%",
+          height: "100%",
+          transform: [{ translateX }],
+        }}
+      >
+        <LinearGradient
+          colors={[
+            "rgba(255, 255, 255, 0)",
+            "rgba(255, 255, 255, 0.5)",
+            "rgba(255, 255, 255, 0)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
+const skeletonStyles = StyleSheet.create({
+  loaderContainer: {
+    backgroundColor: "#333", // Dark background for a dark look
+    overflow: "hidden",
+  },
+});
+
+/* ---------------- Events Component ---------------- */
 export default function Events() {
   const { user, userType, selectedEventPartner } = useAuthContext();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigation = useNavigation();
+
+  // Inline component to handle image loading with skeleton loader
+  const EventImage = ({ eventImage }) => {
+    const [loaded, setLoaded] = useState(false);
+    const imageSource =
+      eventImage && eventImage !== "null"
+        ? { uri: `https://serverhiindia.barodaweb.org/${eventImage}` }
+        : placeholder;
+
+    return (
+      <View style={styles.imageWrapper}>
+        {/* Show skeleton loader until image loads */}
+        {!loaded && <SkeletonLoader style={StyleSheet.absoluteFill} />}
+        <Image
+          source={imageSource}
+          style={[styles.eventImage, { opacity: loaded ? 1 : 0 }]}
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  };
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -73,17 +148,43 @@ export default function Events() {
     const sameYear = start.getFullYear() === end.getFullYear();
 
     const formatOptions = { day: "numeric", month: "short" };
-    const startTime = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const endTime = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const startTime = start.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const endTime = end.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     if (sameDay) {
       return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${endTime}`;
     } else if (sameMonth && sameYear) {
-      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} to ${end.toLocaleDateString(undefined, formatOptions)} ${endTime}`;
+      return `${start.toLocaleDateString(
+        undefined,
+        formatOptions
+      )} ${startTime} to ${end.toLocaleDateString(
+        undefined,
+        formatOptions
+      )} ${endTime}`;
     } else if (sameYear) {
-      return `${start.toLocaleDateString(undefined, formatOptions)} ${startTime} - ${end.toLocaleDateString(undefined, formatOptions)} ${endTime} ${start.getFullYear()}`;
+      return `${start.toLocaleDateString(
+        undefined,
+        formatOptions
+      )} ${startTime} - ${end.toLocaleDateString(
+        undefined,
+        formatOptions
+      )} ${endTime} ${start.getFullYear()}`;
     } else {
-      return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${startTime} - ${end.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} ${endTime}`;
+      return `${start.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })} ${startTime} - ${end.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })} ${endTime}`;
     }
   };
 
@@ -120,18 +221,7 @@ export default function Events() {
         style={styles.eventCard}
       >
         <View style={styles.imageContainer}>
-          <Image source={placeholder} style={styles.placeholderImage} />
-          <Image
-            source={
-              item.EventImage && item.EventImage !== "null"
-                ? {
-                    uri: `https://server.bwebevents.com/${item.EventImage}`,
-                  }
-                : placeholder
-            }
-            style={styles.eventImage}
-            resizeMode="cover"
-          />
+          <EventImage eventImage={item.EventImage} />
         </View>
 
         <View style={styles.eventContent}>
@@ -151,7 +241,9 @@ export default function Events() {
                 onPress={() => Linking.openURL(item.googleMapLink)}
                 style={styles.locationContainer}
               >
-                <Text style={styles.locationText}>{item.EventLocation}</Text>
+                <Text style={styles.locationText}>
+                  {item.EventLocation}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -190,22 +282,35 @@ export default function Events() {
   );
 
   return (
-    <LinearGradient colors={["#000B19", "#001F3F", "#003366"]} style={styles.container}>
+    <LinearGradient
+      colors={["#000B19", "#001F3F", "#003366"]}
+      style={styles.container}
+    >
       <StatusBar barStyle="light-content" backgroundColor="#000B19" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Events</Text>
       </View>
 
-      <FlatList
-        data={events}
-        keyExtractor={(item) => item._id}
-        renderItem={renderEventItem}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>Loading events...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={events}
+          keyExtractor={(item) => item._id}
+          renderItem={renderEventItem}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <Toast />
     </LinearGradient>
@@ -233,12 +338,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
     padding: 8,
   },
-  content: {
-    flex: 1,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: "hidden",
-  },
   listContainer: {
     padding: 16,
   },
@@ -261,18 +360,9 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
   },
-  imageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  placeholderImage: {
-    position: "absolute",
+  imageWrapper: {
     width: "100%",
     height: "100%",
-    opacity: 0.5,
   },
   eventImage: {
     width: "100%",
@@ -287,23 +377,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginBottom: 12,
     lineHeight: 30,
-  },
-  categoryContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 16,
-  },
-  categoryBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  categoryText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
   },
   infoContainer: {
     backgroundColor: "rgba(255,255,255,0.05)",
@@ -332,7 +405,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontFamily: "Poppins-Regular",
     textDecorationLine: "underline",
-    marginTop:10,
+    marginTop: 10,
   },
   buttonsContainer: {
     flexDirection: "row",
@@ -361,25 +434,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 32,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
     color: "#FFFFFF",
     fontFamily: "Poppins-Medium",
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: "#FFFFFF",
-    fontFamily: "Poppins-Medium",
-    marginTop: 16,
-    textAlign: "center",
   },
   errorText: {
     fontSize: 16,
