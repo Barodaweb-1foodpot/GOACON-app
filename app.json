@@ -7,7 +7,7 @@
     "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "light",
     "backgroundColor":"#000",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "fonts": [
       {
         "asset": "./assets/fonts/Poppins-Regular.ttf",

@@ -8,7 +8,7 @@ import {
   Animated,
   StatusBar,
   Dimensions,
-  Text,
+  // Text,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -149,13 +149,13 @@ export default function SplashScreen() {
           ]}
         >
           <Image
-            source={require("../../assets/logo.png")}
+            source={require("../../assets/app_icon.png")}
             style={styles.logo}
             resizeMode="contain"
           />
         </Animated.View>
 
-        <Animated.View
+        {/* <Animated.View
           style={[
             styles.textContainer,
             {
@@ -170,7 +170,7 @@ export default function SplashScreen() {
               Exchange | Empower | Transform
             </Text>
           </View>
-        </Animated.View>
+        </Animated.View> */}
       </LinearGradient>
     </View>
   );

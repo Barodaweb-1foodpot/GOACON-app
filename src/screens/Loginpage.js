@@ -32,7 +32,7 @@ import {
   eventUserLogin,
 } from "../api/adminApi";
 
-import logo from "../../assets/logo.png";
+import logo from "../../assets/app_icon.png";
 
 export default function LoginPage() {
   // [Previous state and hooks remain exactly the same]
