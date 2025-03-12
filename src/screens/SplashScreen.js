@@ -8,7 +8,7 @@ import {
   Animated,
   StatusBar,
   Dimensions,
-  // Text,
+  Text,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -155,7 +155,7 @@ export default function SplashScreen() {
           />
         </Animated.View>
 
-        {/* <Animated.View
+        <Animated.View
           style={[
             styles.textContainer,
             {
@@ -164,13 +164,8 @@ export default function SplashScreen() {
             },
           ]}
         >
-          <Text style={styles.dateText}>7th & 8th February</Text>
-          <View style={styles.taglineContainer}>
-            <Text style={styles.taglineText}>
-              Exchange | Empower | Transform
-            </Text>
-          </View>
-        </Animated.View> */}
+          <Text style={styles.appNameText}>BwebEScan</Text>
+        </Animated.View>
       </LinearGradient>
     </View>
   );
@@ -216,31 +211,13 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === "ios" ? 60 : 40,
     alignItems: "center",
   },
-  dateText: {
-    fontSize: 24,
+  appNameText: {
+    fontSize: 30,
     color: "#FFFFFF",
-    fontWeight: "600",
-    marginBottom: 15,
-    letterSpacing: 1,
+    fontFamily: "Poppins-SemiBold",
+    letterSpacing: 2,
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  taglineContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  taglineText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "500",
-    letterSpacing: 1,
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 6,
   },
 });

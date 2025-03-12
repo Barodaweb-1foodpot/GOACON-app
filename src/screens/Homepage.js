@@ -81,7 +81,7 @@ export default function Homepage() {
         />
         <DashboardCard
           icon="qr-code-scanner"
-          title="Scanner"
+          title="Scan"
           color="#9C27B0"
           onPress={() => navigation.navigate("Scanner")}
         />
