@@ -17,7 +17,6 @@ const { width, height } = Dimensions.get("window");
 const STATUSBAR_HEIGHT = Platform.OS === "ios" ? 40 : StatusBar.currentHeight;
 const PARTICLE_COUNT = 100;
 
-// Different star configurations
 const STAR_CONFIGS = [
   { size: 1.5, probability: 0.6, twinkleSpeed: 1000 },
   { size: 2.5, probability: 0.3, twinkleSpeed: 1500 },
@@ -37,7 +36,6 @@ export default function SplashScreen() {
   const slideUpAnim = useRef(new Animated.Value(50)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
 
-  
   const stars = useRef(
     [...Array(PARTICLE_COUNT)].map(() => {
       const rand = Math.random();
@@ -47,11 +45,11 @@ export default function SplashScreen() {
       return {
         opacity: new Animated.Value(Math.random()),
         left: Math.random() * width,
-        top: Math.random() * height * 0.8, 
+        top: Math.random() * height * 0.8,
         size: config.size,
         color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
-        twinkleSpeed: config.twinkleSpeed + Math.random() * 500, 
-        delay: Math.random() * 1000, 
+        twinkleSpeed: config.twinkleSpeed + Math.random() * 500,
+        delay: Math.random() * 1000,
       };
     })
   ).current;
@@ -86,12 +84,11 @@ export default function SplashScreen() {
       ]),
     ]).start();
 
-    
     stars.forEach((star) => {
       const createTwinkle = () => {
         Animated.sequence([
           Animated.timing(star.opacity, {
-            toValue: Math.random() * 0.4 + 0.4, 
+            toValue: Math.random() * 0.4 + 0.4,
             duration: star.twinkleSpeed,
             useNativeDriver: true,
           }),
@@ -164,7 +161,9 @@ export default function SplashScreen() {
             },
           ]}
         >
-          <Text style={styles.appNameText}>BwebEScan</Text>
+          <Text style={styles.appNameText} includeFontPadding={false}>
+            BwebEScan
+          </Text>
         </Animated.View>
       </LinearGradient>
     </View>
@@ -210,12 +209,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: Platform.OS === "ios" ? 60 : 40,
     alignItems: "center",
+    paddingHorizontal: 10, 
   },
   appNameText: {
     fontSize: 30,
     color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     letterSpacing: 2,
+    paddingBottom: 5, 
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
