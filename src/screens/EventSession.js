@@ -123,9 +123,9 @@ export default function EventSession({ route, navigation }) {
           <Text style={styles.participantName}>
             {eventDetails?.name || "N/A"}
           </Text>
-          <Text style={styles.designation}>
+          {/* <Text style={styles.designation}>
             {eventDetails?.designation || "N/A"}
-          </Text>
+          </Text> */}
         </View>
       </View>
       

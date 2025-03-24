@@ -592,11 +592,11 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
             size={20}
             color={participant.isScanned ? "#4CAF50" : "#2C3E50"}
           />
-          <Text
+          {/* <Text
             style={[styles.infoText, participant.isScanned && styles.scannedText]}
           >
             {participant.designation || "N/A"}
-          </Text>
+          </Text> */}
         </View>
 
         {participant.isScanned && participant.scannedAt && (

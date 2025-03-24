@@ -206,9 +206,9 @@ export default function ScanResult({ route }) {
       <View style={styles.infoContainer}>
         <View style={styles.infoItem}>
           <Icon name="person" size={20} color="#FFFFFF" />
-          <Text style={styles.infoText}>
+          {/* <Text style={styles.infoText}>
             {eventDetails?.designation || "N/A"}
-          </Text>
+          </Text> */}
         </View>
 
         <View style={styles.infoItem}>
