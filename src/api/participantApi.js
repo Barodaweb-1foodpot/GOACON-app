@@ -5,14 +5,12 @@ import { API_BASE_URL } from "@env";
 export const fetchEventsByPartner = async (id) => {
   try {
     const response = await axios.get(
-      `${API_BASE_URL}/auth/list/eventByEventPartner/${id}`
+      `${API_BASE_URL}/auth/get/listExhibitionByEventPartner/${id}`
     );
+    console.log("------------------",response.data)
+    
 
-    if (!response.data || !response.data.event) {
-      throw new Error("Invalid response format");
-    }
-
-    return response.data.event;
+    return response.data;
   } catch (error) {
     console.error("Error fetching events:", error);
     Toast.show({

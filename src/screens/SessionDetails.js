@@ -121,7 +121,7 @@ export default function SessionDetails() {
       const formattedEvents = [
         { label: "All Events", value: null },
         ...eventsList.map((event) => ({
-          label: event.EventName,
+          label: event.exhibitionEventName,
           value: event._id,
         })),
       ];

@@ -130,14 +130,14 @@ export default function EventSession({ route, navigation }) {
       </View>
       
       <View style={styles.eventInfoContainer}>
-        <Text style={styles.eventName}>
-          {eventDetails?.eventName?.EventName || "N/A"}
+        <Text style={styles.exhibitionEventName}>
+          {eventDetails?.exhibitionEventName?.exhibitionEventName || "N/A"}
         </Text>
         <View style={styles.dateContainer}>
           <Icon name="event" size={18} color="#FFFFFF" style={styles.iconStyle} />
           <Text style={styles.eventDate}>
-            {formatDate(eventDetails?.eventName?.StartDate)} to{" "}
-            {formatDate(eventDetails?.eventName?.EndDate)}
+            {formatDate(eventDetails?.exhibitionEventName?.startTime)} to{" "}
+            {formatDate(eventDetails?.exhibitionEventName?.endTime)}
           </Text>
         </View>
       </View>
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
   },
-  eventName: {
+  exhibitionEventName: {
     fontSize: 18,
     color: "#FFFFFF",
     marginBottom: 8,

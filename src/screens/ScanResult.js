@@ -199,8 +199,8 @@ export default function ScanResult({ route }) {
         </View>
       </View>
 
-      <Text style={styles.eventName}>
-        {eventDetails?.eventName?.EventName || "N/A"}
+      <Text style={styles.exhibitionEventName}>
+        {eventDetails?.exhibitionEventName?.exhibitionEventName || "N/A"}
       </Text>
 
       <View style={styles.infoContainer}>
@@ -214,7 +214,7 @@ export default function ScanResult({ route }) {
         <View style={styles.infoItem}>
           <Icon name="room" size={20} color="#FFFFFF" />
           <Text style={styles.infoText}>
-            {eventDetails?.eventName?.EventLocation || "N/A"}
+            {eventDetails?.exhibitionEventName?.address || "N/A"}
           </Text>
         </View>
 
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Poppins-Medium",
   },
-  eventName: {
+  exhibitionEventName: {
     fontSize: 18,
     color: "#FFFFFF",
     marginBottom: 16,

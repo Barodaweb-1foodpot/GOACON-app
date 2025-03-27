@@ -36,9 +36,10 @@ export const fetchEventsByPartner = async (payload) => {
   try {
     console.log("Fetching events with payload:", payload);
     const response = await axios.post(
-      `${API_BASE_URL}/auth/list-by-params/eventByEventPartner`,
+      `${API_BASE_URL}/auth/list-by-params/exhibitionDetailsByEventPartner`,
       payload
     );
+    // console.log(response.data)
 
     if (!response.data || !response.data[0] || !response.data[0].data) {
       throw new Error("Invalid response format");
@@ -109,11 +110,22 @@ export const markSessionScanned = async (eventId, sessionId) => {
 export const validateEventData = (data) => {
   if (!data) return false;
   
-  const requiredFields = ['eventName', 'name', 'ticketCategory'];
+  const requiredFields = ['exhibitionEventName', 'name', 'ticketCategory'];
   return requiredFields.every(field => {
-    if (field === 'eventName') {
-      return data[field]?.EventName;
+    if (field === 'exhibitionEventName') {
+      return data[field]?.exhibitionEventName;
     }
     return data[field];
   });
 };
+
+export const fetchSessionByExhibition=async(exhibitionId)=>{
+  try {
+    const res = await axios.get(`${API_BASE_URL}/auth/get/listEventSessionByExhibition/${exhibitionId}`)
+    console.log("=================",res)
+    return res.data
+  } catch (error) {
+    console.error("Error fetching session by exhibition:", error);
+    handleApiError(error, "Unable to fetch session by exhibition.");
+  }
+} 

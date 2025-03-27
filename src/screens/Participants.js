@@ -95,11 +95,11 @@ export default function Participants() {
   const fetchEvents = async () => {
     try {
       const eventsList = await fetchEventsByPartner(partnerId);
-
+      console.log("eventsList",eventsList)
       const formattedEvents = [
         { label: "All Events", value: null },
-        ...eventsList.map((event) => ({
-          label: event.EventName,
+        ...eventsList.data.map((event) => ({
+          label: event.exhibitionEventName,
           value: event._id,
         })),
       ];
@@ -120,7 +120,7 @@ export default function Participants() {
         eventPartner: partnerId,
       };
       if (eventValue) {
-        basePayload.EventName = eventValue;
+        basePayload.exhibitionEventName = eventValue;
       }
 
       // Total
@@ -161,7 +161,7 @@ export default function Participants() {
         eventPartner: partnerId,
       };
       if (eventValue) {
-        payload.EventName = eventValue;
+        payload.exhibitionEventName = eventValue;
       }
       if (entryValue !== null) {
         payload.isScanned = entryValue;

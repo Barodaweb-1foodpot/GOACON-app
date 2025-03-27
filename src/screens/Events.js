@@ -89,7 +89,7 @@ export default function Events() {
     const [loaded, setLoaded] = useState(false);
     const imageSource =
       eventImage && eventImage !== "null"
-        ? { uri: `https://serverhiindia.barodaweb.org/${eventImage}` }
+        ? { uri: `https://server.bwebevents.com/${eventImage}` }
         : placeholder;
 
     return (
@@ -190,15 +190,15 @@ export default function Events() {
 
   const handleShare = async (event) => {
     try {
-      const dateRange = formatDateRange(event.StartDate, event.EndDate);
-      const message = `✨ *${event?.EventName}* ✨
+      const dateRange = formatDateRange(event.startTime, event.endTime);
+      const message = `✨ *${event?.exhibitionEventName}* ✨
 📅 *Date & Time:* ${dateRange}
-📍 *Location:* ${event.EventLocation}
-🗺️ *Google Maps:* ${event.googleMapLink}`;
+📍 *Location:* ${event.address}
+🗺️ *Google Maps:* ${event.locationLink}`;
 
       await Share.share({
         message,
-        title: event.EventName,
+        title: event.exhibitionEventName,
       });
     } catch (error) {
       console.error("Error sharing event:", error);
@@ -225,24 +225,24 @@ export default function Events() {
         </View>
 
         <View style={styles.eventContent}>
-          <Text style={styles.eventTitle}>{item.EventName}</Text>
+          <Text style={styles.eventTitle}>{item.exhibitionEventName}</Text>
 
           <View style={styles.infoContainer}>
             <View style={styles.infoRow}>
               <Icon name="event" size={20} color="#FFFFFF" />
               <Text style={styles.infoText}>
-                {formatDateRange(item.StartDate, item.EndDate)}
+                {formatDateRange(item.startTime, item.endTime)}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
               <Icon name="location-on" size={20} color="#FFFFFF" />
               <TouchableOpacity
-                onPress={() => Linking.openURL(item.googleMapLink)}
+                onPress={() => Linking.openURL(item.locationLink)}
                 style={styles.locationContainer}
               >
                 <Text style={styles.locationText}>
-                  {item.EventLocation}
+                  {item.address}
                 </Text>
               </TouchableOpacity>
             </View>
