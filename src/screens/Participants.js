@@ -27,6 +27,7 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient"; // Import LinearGradient
+import { markParticipantEntered } from "../api/eventApi";
 
 export default function Participants() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -63,7 +64,7 @@ export default function Participants() {
   const [currentPage, setCurrentPage] = useState(1); // Added currentPage state
 
   const entryTypes = [
-    { label: "All", value: null },
+    { label: "All", value: "All" },
     { label: "Scanned", value: true },
     { label: "Not Scanned", value: false },
   ];
@@ -120,26 +121,17 @@ export default function Participants() {
         eventPartner: partnerId,
       };
       if (eventValue) {
-        basePayload.exhibitionEventName = eventValue;
+        basePayload.exhibitionId = eventValue;
       }
 
       // Total
       const totalResponse = await fetchParticipants(basePayload);
-      setTotalCount(totalResponse.count);
+      console.log("mmmmmmmmmmmmmmm",totalResponse)
+      setTotalCount(totalResponse.totalCount);
+      setNotScannedCount(totalResponse.notScannedCount)
+      setScannedCount(totalResponse.scannedCount)
 
-      // Scanned
-      const scannedResponse = await fetchParticipants({
-        ...basePayload,
-        isScanned: true,
-      });
-      setScannedCount(scannedResponse.count);
-
-      // Not Scanned
-      const notScannedResponse = await fetchParticipants({
-        ...basePayload,
-        isScanned: false,
-      });
-      setNotScannedCount(notScannedResponse.count);
+      
     } catch (error) {
       console.error("Error fetching counts:", error);
       Alert.alert("Error", "Failed to fetch counts.");
@@ -161,7 +153,7 @@ export default function Participants() {
         eventPartner: partnerId,
       };
       if (eventValue) {
-        payload.exhibitionEventName = eventValue;
+        payload.exhibitionId = eventValue;
       }
       if (entryValue !== null) {
         payload.isScanned = entryValue;
@@ -222,10 +214,11 @@ export default function Participants() {
             text: "Scan",
             onPress: async () => {
               try {
-                const resp = await updateParticipantScanStatus(
+                const resp = await markParticipantEntered(
                   participantId,
-                  true
+                  eventValue
                 );
+                if(resp.isOk) fetchParticipantsList()
 
                 setParticipants((prev) =>
                   prev.map((p) =>
@@ -560,68 +553,87 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
 
   return (
     <TouchableOpacity
-      style={[styles.card, participant.isScanned && styles.scannedCard]}
-      onPress={onPress}
-      disabled={participant.isScanned}
-      accessible={true}
-      accessibilityLabel={`Scan participant ${participant.name}`}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.nameText}>{participant?.name || "N/A"}</Text>
-        <View
+    style={[
+      styles.card,
+      participant.registrationScan  && participant.registrationScan !== null && styles.scannedCard,
+    ]}
+    onPress={onPress}
+    disabled={participant.registrationScan  && participant.registrationScan !== null}
+    accessible={true}
+    accessibilityLabel={`Scan participant ${participant.name}`}
+  >
+    <View style={styles.cardHeader}>
+      <Text style={styles.nameText}>
+        {participant?.firstName || " "}
+        {participant?.lastName || " "}
+      </Text>
+      <View
+        style={[
+          styles.statusBadge,
+          {
+            backgroundColor:
+              participant.registrationScan  && participant.registrationScan !== null ? "#4CAF50" : "#FFA000",
+          },
+        ]}
+      >
+        <Icon
+          name={
+            participant.registrationScan  && participant.registrationScan !== null
+              ? "check-circle"
+              : "pending"
+          }
+          size={16}
+          color="#FFFFFF"
+        />
+        <Text style={styles.statusText}>
+          {participant.registrationScan  && participant.registrationScan !== null ? "Scanned" : "Not Scanned"}
+        </Text>
+      </View>
+    </View>
+  
+    <View style={styles.cardContent}>
+      <View style={styles.infoRow}>
+        <Icon
+          name="badge"
+          size={20}
+          color={
+            participant.registrationScan  && participant.registrationScan !== null ? "#4CAF50" : "#2C3E50"
+          }
+        />
+        <Text
           style={[
-            styles.statusBadge,
-            { backgroundColor: participant.isScanned ? "#4CAF50" : "#FFA000" },
+            styles.infoText,
+            participant.registrationScan  && participant.registrationScan !== null && styles.scannedText,
           ]}
         >
-          <Icon
-            name={participant.isScanned ? "check-circle" : "pending"}
-            size={16}
-            color="#FFFFFF"
-          />
-          <Text style={styles.statusText}>
-            {participant.isScanned ? "Scanned" : "Not Scanned"}
+          {participant.companyName || "N/A"}
+        </Text>
+      </View>
+  
+      {participant.registrationScan && participant.scannedAt && (
+        <View style={styles.infoRow}>
+          <Icon name="schedule" size={20} color="#4CAF50" />
+          <Text style={[styles.infoText, styles.scannedText]}>
+            {formatDate(participant.scannedAt)}
           </Text>
         </View>
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
-          <Icon
-            name="badge"
-            size={20}
-            color={participant.isScanned ? "#4CAF50" : "#2C3E50"}
-          />
-          {/* <Text
-            style={[styles.infoText, participant.isScanned && styles.scannedText]}
-          >
-            {participant.designation || "N/A"}
-          </Text> */}
-        </View>
-
-        {participant.isScanned && participant.scannedAt && (
-          <View style={styles.infoRow}>
-            <Icon name="schedule" size={20} color="#4CAF50" />
-            <Text style={[styles.infoText, styles.scannedText]}>
-              {formatDate(participant.scannedAt)}
-            </Text>
-          </View>
-        )}
-
-        {participant.isScanned && (
-          <TouchableOpacity
-            style={styles.scannedOverlay}
-            onPress={() =>
-              navigation.navigate("EventSession", { participant: participant })
-            }
-            accessible={true}
-            accessibilityLabel={`View event sessions for ${participant.name}`}
-          >
-            <Text style={styles.scannedMessage}>View Event Sessions</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+      )}
+  
+      {participant.registrationScan && (
+        <TouchableOpacity
+          style={styles.scannedOverlay}
+          onPress={() =>
+            navigation.navigate("EventSession", { participant: participant })
+          }
+          accessible={true}
+          accessibilityLabel={`View event sessions for ${participant.name}`}
+        >
+          <Text style={styles.scannedMessage}>View Event Sessions</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </TouchableOpacity>
+  
   );
 });
 

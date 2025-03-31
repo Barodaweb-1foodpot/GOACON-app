@@ -3,7 +3,7 @@ import Toast from "react-native-toast-message";
 import { API_BASE_URL } from "@env";
 
 export const fetchEventsByPartner = async (id) => {
-  try {
+  try { 
     const response = await axios.get(
       `${API_BASE_URL}/auth/get/listExhibitionByEventPartner/${id}`
     );
@@ -38,16 +38,18 @@ export const fetchParticipants = async (payload) => {
     };
 
     const response = await axios.post(
-      `${API_BASE_URL}/auth/list-by-params/EventRegisterFilter`,
+      `${API_BASE_URL}/auth/participant/RegistrationScanCount`,
       requestPayload
     );
-
-    const responseData = response?.data[0] || {};
+    console.log("lllllllllll",response)
+    const responseData = response?.data || {};
 
     return {
       data: responseData.data || [],
-      count: responseData.count || 0,
-      totalPages: Math.ceil((responseData.count || 0) / perPage),
+      scannedCount: responseData.scannedCount || 0,
+      notScannedCount:responseData.notScannedCount,
+      totalCount:responseData.totalParticipants,
+      totalPages: Math.ceil((responseData.totalParticipants || 0) / perPage),
     };
   } catch (error) {
     console.error("Error fetching participants:", error);

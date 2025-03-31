@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react/prop-types */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,8 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { fetchEventDetails, markSessionScanned } from "../api/eventApi";
+import { fetchEventDetails, fetchEventsByPartner, fetchParticipantDetail, markSessionScanned } from "../api/eventApi";
+import { useAuthContext } from "../context/AuthContext";
 
 const { width } = Dimensions.get('window');
 
@@ -27,16 +28,22 @@ export default function EventSession({ route, navigation }) {
   const [isLoading, setIsLoading] = useState(true);
   const [eventDetails, setEventDetails] = useState(null);
   const [processingSession, setProcessingSession] = useState(null);
-
+  const [sessionDetail, setSessionDetail] = useState([])
   useEffect(() => {
     fetchDetails();
   }, []);
-
+  const { user, userType, selectedEventPartner } = useAuthContext();
+  const partnerId = useMemo(() => {
+    return userType === "eventUser" ? selectedEventPartner : user;
+  }, [userType, selectedEventPartner, user]);
   const fetchDetails = async () => {
     try {
+
       setIsLoading(true);
-      const data = await fetchEventDetails(participant._id);
-      setEventDetails(data);
+      console.log("pppp", participant)
+      const data = await fetchParticipantDetail(participant._id);
+      setEventDetails(data.data);
+      setSessionDetail(data.sessiondata)
     } catch (error) {
       console.error("Failed to fetch session details:", error);
       Toast.show({
@@ -121,23 +128,23 @@ export default function EventSession({ route, navigation }) {
         </View>
         <View style={styles.headerInfo}>
           <Text style={styles.participantName}>
-            {eventDetails?.name || "N/A"}
+            {participant.firstName || "N/A"} {participant.lastName || " "}
           </Text>
-          {/* <Text style={styles.designation}>
-            {eventDetails?.designation || "N/A"}
-          </Text> */}
+          <Text style={styles.designation}>
+            {participant?.companyName || "N/A"}
+          </Text>
         </View>
       </View>
-      
+
       <View style={styles.eventInfoContainer}>
         <Text style={styles.exhibitionEventName}>
-          {eventDetails?.exhibitionEventName?.exhibitionEventName || "N/A"}
+          {eventDetails?.exhibitionId?.exhibitionEventName || "N/A"}
         </Text>
         <View style={styles.dateContainer}>
           <Icon name="event" size={18} color="#FFFFFF" style={styles.iconStyle} />
           <Text style={styles.eventDate}>
-            {formatDate(eventDetails?.exhibitionEventName?.startTime)} to{" "}
-            {formatDate(eventDetails?.exhibitionEventName?.endTime)}
+            {formatDate(eventDetails?.exhibitionId?.startTime)} to{" "}
+            {formatDate(eventDetails?.exhibitionId?.endTime)}
           </Text>
         </View>
       </View>
@@ -147,84 +154,83 @@ export default function EventSession({ route, navigation }) {
   const renderSessionsCard = () => (
     <View style={styles.sessionsContainer}>
       <Text style={styles.sectionTitle}>Available Sessions</Text>
-      {eventDetails?.EventSession?.map((session) => {
-        const sessionStart = session.EventSession?.startTime;
-        const sessionEnd = session.EventSession?.endTime;
-        const isAvailable = isSessionWithinTimeWindow(sessionStart, sessionEnd);
+      {sessionDetail?.map((session) => {
+        const sessionStart = session.startTime;
+        const sessionEnd = session.endTime;
+
+        // ✅ Check if participant has scanned this session
+        const isScanned = eventDetails?.sessionScan?.some(
+          (scan) => scan.exhibitionSessionId?.toString() === session._id?.toString()
+        );
+
+        const isAvailable = true;
 
         return (
           <View
-            key={session.EventSession?._id}
+            key={session._id}
             style={[
               styles.sessionCard,
-              {
-                borderLeftColor: session.isScanned ? "#4CAF50" : "#FFA000",
-              },
+              { borderLeftColor: isScanned ? "#4CAF50" : "#FFA000" },
             ]}
           >
             <View style={styles.sessionContent}>
               <View style={styles.sessionInfo}>
                 <Text style={styles.sessionName}>
-                  {session.EventSession?.sessionName || "Unnamed Session"}
+                  {session.sessionName || "Unnamed Session"}
                 </Text>
 
                 <View style={styles.timeContainer}>
                   <Icon name="event" size={16} color="#FFFFFF" />
-                  <Text style={styles.sessionDate}>
-                    {formatDate(sessionStart)}
-                  </Text>
+                  <Text style={styles.sessionDate}>{formatDate(sessionStart)}</Text>
                 </View>
 
                 <View style={styles.timeContainer}>
                   <Icon name="schedule" size={16} color="#FFFFFF" />
                   <Text style={styles.sessionTime}>
-                    {`${formatDateTime(sessionStart)} - ${formatDateTime(
-                      sessionEnd
-                    )}`}
+                    {`${formatDateTime(sessionStart)} - ${formatDateTime(sessionEnd)}`}
                   </Text>
                 </View>
 
                 <View style={styles.locationContainer}>
                   <Icon name="location-on" size={16} color="#FFFFFF" />
                   <Text style={styles.sessionLocation}>
-                    {session.EventSession?.sessionLocation || "N/A"}
+                    {session.sessionLocation || "N/A"}
                   </Text>
                 </View>
               </View>
 
-              {processingSession === session.EventSession?._id ? (
+              {processingSession === session._id ? (
                 <ActivityIndicator size="small" color="#4CAF50" />
               ) : (
                 <TouchableOpacity
                   style={[
                     styles.sessionButton,
-                    session.isScanned && styles.scannedButton,
-                    !isAvailable && !session.isScanned && styles.unavailableButton,
+                    isScanned && styles.scannedButton,
+                    !isAvailable && !isScanned && styles.unavailableButton,
                   ]}
                   onPress={() =>
-                    !session.isScanned &&
+                    !isScanned &&
                     isAvailable &&
-                    session.EventSession?._id &&
-                    handleSessionScan(session.EventSession._id)
+                    session._id &&
+                    handleSessionScan(session._id)
                   }
-                  disabled={session.isScanned || !isAvailable}
                 >
                   <LinearGradient
                     colors={
-                      session.isScanned
+                      isScanned
                         ? ["#4CAF50", "#2E7D32"]
                         : !isAvailable
-                        ? ["#9E9E9E", "#757575"]
-                        : ["#FFA000", "#F57C00"]
+                          ? ["#9E9E9E", "#757575"]
+                          : ["#FFA000", "#F57C00"]
                     }
                     style={styles.buttonGradient}
                   >
                     <Text style={styles.buttonText}>
-                      {session.isScanned
+                      {isScanned
                         ? "Scanned ✓"
                         : !isAvailable
-                        ? "Not Available"
-                        : "Enter Session"}
+                          ? "Not Available"
+                          : "Enter Session"}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -233,6 +239,7 @@ export default function EventSession({ route, navigation }) {
           </View>
         );
       })}
+
     </View>
   );
 
@@ -261,8 +268,8 @@ export default function EventSession({ route, navigation }) {
             <Text style={styles.loadingText}>Loading Session Details...</Text>
           </View>
         ) : (
-          <ScrollView 
-            style={styles.scrollView} 
+          <ScrollView
+            style={styles.scrollView}
             bounces={false}
             showsVerticalScrollIndicator={false}
           >

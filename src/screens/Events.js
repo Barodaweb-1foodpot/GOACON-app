@@ -119,7 +119,8 @@ export default function Events() {
         eventPartner_id: partnerId,
       };
       const response = await fetchEventsByPartner(payload);
-      setEvents(response || []);
+      console.log(response)
+      setEvents(response.data || []);
     } catch (err) {
       setError("Failed to fetch events.");
       console.error("Error fetching events:", err);
