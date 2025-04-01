@@ -20,6 +20,8 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   fetchEventDetails,
+  fetchParticipantDetail,
+  fetchSessionByExhibition,
   markParticipantEntered,
   markSessionScanned,
 } from "../api/eventApi";
@@ -32,17 +34,17 @@ export default function ScanResult({ route }) {
   const [showAnimation, setShowAnimation] = useState(false);
   const [eventDetails, setEventDetails] = useState(null);
   const [registerId, setRegisterId] = useState("");
+  const [exhibitionSession , setExhibitionSession] = useState([])
   const [processingSession, setProcessingSession] = useState(null);
   const [showSessions, setShowSessions] = useState(false);
 
   useEffect(() => {
     if (data) {
       try {
-        const url = new URL(data);
-        const pathSegments = url.pathname.split("/");
-        const eventId = pathSegments[pathSegments.length - 1];
-        setRegisterId(eventId);
-        fetchDetails(eventId);
+        console.log(data)
+       
+        setRegisterId(data);
+        fetchDetails(data);
       } catch (error) {
         console.error("Error parsing URL or extracting ID:", error);
         Toast.show({
@@ -55,13 +57,20 @@ export default function ScanResult({ route }) {
     }
   }, [data]);
 
-  const fetchDetails = async (eventId) => {
+  const [participantData , setParticipantData] = useState('')
+  const fetchDetails = async (data) => {
     try {
       setIsLoading(true);
-      const eventData = await fetchEventDetails(eventId);
-      setEventDetails(eventData);
-      if (eventData.isScanned) {
-        setShowSessions(true);
+      const participantData = await fetchParticipantDetail(data);
+      setParticipantData(participantData) 
+      setEventDetails(participantData.data.exhibitionId);
+      if (!participantData.registrationScan || participantData.registrationScan===null) {
+        setShowSessions(false);
+      }
+      else{
+        console.log("-------------------------")
+        fetchExhibitionSession(participantData.exhibitionId._id)
+        setShowSessions(true)
       }
     } catch (error) {
       Toast.show({
@@ -87,11 +96,15 @@ export default function ScanResult({ route }) {
         return;
       }
 
-      await markParticipantEntered(registerId);
+      const res = await markParticipantEntered(participantData._id,eventDetails._id);
       // Update local state immediately
-      setEventDetails((prev) => ({
+      if(res.isOk)
+      {
+        fetchExhibitionSession(res.data.exhibitionId)
+      }
+      setParticipantData((prev) => ({
         ...prev,
-        isScanned: true,
+        registrationScan: eventDetails._id,
       }));
       setShowAnimation(true);
       setTimeout(() => {
@@ -106,6 +119,12 @@ export default function ScanResult({ route }) {
       });
     }
   };
+
+  const fetchExhibitionSession = async(exhibitionId)=>{
+    const res = await fetchSessionByExhibition(exhibitionId)
+    console.log("-------------",res)
+    setExhibitionSession(res.data)
+  }
 
   const isSessionWithinTimeWindow = (startTime, endTime) => {
     if (!startTime || !endTime) return false;
@@ -123,7 +142,7 @@ export default function ScanResult({ route }) {
         onPress: async () => {
           try {
             setProcessingSession(sessionId);
-            await markSessionScanned(registerId, sessionId);
+            await markSessionScanned(participantData._id, sessionId);
             await fetchDetails(registerId);
             Toast.show({
               type: "success",
@@ -180,41 +199,41 @@ export default function ScanResult({ route }) {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.participantName}>
-          {eventDetails?.name || "N/A"}
-        </Text>
+          {eventDetails?.exhibitionEventName || "N/A"}
+        </Text> 
         <View style={styles.statusBadge}>
           <Icon
-            name={eventDetails?.isScanned ? "check-circle" : "pending"}
+            name={participantData?.registrationScan === null || !participantData?.registrationScan ?"pending": "check-circle"  }
             size={16}
-            color={eventDetails?.isScanned ? "#4CAF50" : "#FFA000"}
+            color={!participantData?.registrationScan || participantData?.registrationScan===null ? "#FFA000" :"#4CAF50"}
           />
           <Text
             style={[
               styles.statusText,
-              { color: eventDetails?.isScanned ? "#4CAF50" : "#FFA000" },
+              { color: !participantData?.registrationScan || participantData?.registrationScan===null  ?  "#FFA000" :"#4CAF50" },
             ]}
           >
-            {eventDetails?.isScanned ? "Checked In" : "Not Entered"}
+            {!participantData?.registrationScan || participantData?.registrationScan===null ?  "Not Entered":"Checked In" }
           </Text>
         </View>
       </View>
 
-      <Text style={styles.eventName}>
-        {eventDetails?.eventName?.EventName || "N/A"}
+      <Text style={styles.exhibitionEventName}>
+        {eventDetails?.exhibitionEventName || "N/A"}
       </Text>
 
       <View style={styles.infoContainer}>
         <View style={styles.infoItem}>
           <Icon name="person" size={20} color="#FFFFFF" />
           <Text style={styles.infoText}>
-            {eventDetails?.designation || "N/A"}
+            {eventDetails?.companyName || "N/A"}
           </Text>
         </View>
 
         <View style={styles.infoItem}>
           <Icon name="room" size={20} color="#FFFFFF" />
           <Text style={styles.infoText}>
-            {eventDetails?.eventName?.EventLocation || "N/A"}
+            {eventDetails?.address || "N/A"}
           </Text>
         </View>
 
@@ -229,13 +248,15 @@ export default function ScanResult({ route }) {
   );
 
   const renderSessionsCard = () => {
-    const availableSessions = eventDetails?.EventSession?.filter(
-      (session) =>
-        isSessionWithinTimeWindow(
-          session.EventSession?.startTime,
-          session.EventSession?.endTime
-        ) || session.isScanned
-    );
+    const availableSessions = exhibitionSession
+    // const availableSessions = exhibitionSession?.length>0 && exhibitionSession?.filter(
+    //   (session) =>
+    //     isSessionWithinTimeWindow(
+    //       session.startTime,
+    //       session.endTime
+    //     ) 
+    // );
+    
 
     if (!availableSessions || availableSessions.length === 0) {
       return (
@@ -252,29 +273,33 @@ export default function ScanResult({ route }) {
       <>
         <Text style={styles.sessionsTitle}>Event Sessions</Text>
         <View style={styles.sessionsContainer}>
-          {availableSessions.map((session) => {
-            const sessionStart = session.EventSession?.startTime;
-            const sessionEnd = session.EventSession?.endTime;
-            const isAvailable = isSessionWithinTimeWindow(
-              sessionStart,
-              sessionEnd
+        {availableSessions.map((session) => {
+            const sessionStart = session.startTime;
+            const sessionEnd = session.endTime;
+            const isAvailable = true
+            // const isAvailable = isSessionWithinTimeWindow(
+            //   sessionStart,
+            //   sessionEnd
+            // );
+            const isScanned = participantData?.sessionScan?.some(
+              (scan) => scan.exhibitionSessionId === session._id
             );
-
+            
             return (
               <LinearGradient
-                key={session.EventSession?._id}
+                key={session._id}
                 colors={["rgba(255,255,255,0.15)", "rgba(255,255,255,0.05)"]}
                 style={[
                   styles.sessionCard,
                   {
-                    borderLeftColor: session.isScanned ? "#4CAF50" : "#FFA000",
+                    borderLeftColor: isScanned ? "#4CAF50" : "#FFA000",
                   },
                 ]}
               >
                 <View style={styles.sessionContent}>
                   <View style={styles.sessionInfo}>
                     <Text style={styles.sessionName}>
-                      {session.EventSession?.sessionName || "Unnamed Session"}
+                      {session.sessionName || "Unnamed Session"}
                     </Text>
 
                     <View style={styles.timeContainer}>
@@ -296,32 +321,32 @@ export default function ScanResult({ route }) {
                     <View style={styles.locationContainer}>
                       <Icon name="location-on" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionLocation}>
-                        {session.EventSession?.sessionLocation || "N/A"}
+                        {session.sessionLocation || "N/A"}
                       </Text>
                     </View>
                   </View>
 
-                  {processingSession === session.EventSession?._id ? (
+                  {processingSession === session._id ? (
                     <ActivityIndicator size="small" color="#4CAF50" />
                   ) : (
                     <TouchableOpacity
                       style={[
                         styles.sessionButton,
-                        session.isScanned && styles.scannedButton,
+                        isScanned && styles.scannedButton,
                         !isAvailable &&
-                          !session.isScanned &&
+                          !isScanned &&
                           styles.unavailableButton,
                       ]}
                       onPress={() =>
-                        !session.isScanned &&
+                        !isScanned &&
                         isAvailable &&
-                        handleSessionScan(session.EventSession._id)
+                        handleSessionScan(session._id)
                       }
-                      disabled={session.isScanned || !isAvailable}
+                      disabled={isScanned || !isAvailable}
                     >
                       <LinearGradient
                         colors={
-                          session.isScanned
+                          isScanned
                             ? ["#4CAF50", "#2E7D32"] // Green gradient for scanned
                             : !isAvailable
                               ? ["#9E9E9E", "#757575"] // Grey gradient for unavailable
@@ -330,7 +355,7 @@ export default function ScanResult({ route }) {
                         style={styles.buttonGradient}
                       >
                         <Text style={styles.buttonText}>
-                          {session.isScanned
+                          {isScanned
                             ? "Scanned ✓"
                             : !isAvailable
                               ? "Not Available"
@@ -510,7 +535,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Poppins-Medium",
   },
-  eventName: {
+  exhibitionEventName: {
     fontSize: 18,
     color: "#FFFFFF",
     marginBottom: 16,

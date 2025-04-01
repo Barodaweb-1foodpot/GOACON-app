@@ -32,31 +32,14 @@ export const fetchEventDetails = async (eventId) => {
   }
 };
 
-export const fetchEventsByPartner = async (payload) => {
+ 
+
+export const markParticipantEntered = async (participantId, exhibitionId ) => {
   try {
-    console.log("Fetching events with payload:", payload);
+    console.log(participantId, exhibitionId );
     const response = await axios.post(
-      `${API_BASE_URL}/auth/list-by-params/eventByEventPartner`,
-      payload
-    );
-
-    if (!response.data || !response.data[0] || !response.data[0].data) {
-      throw new Error("Invalid response format");
-    }
-
-    console.log("Events fetched successfully:", response.data[0].data);
-    return response.data[0].data;
-  } catch (error) {
-    console.error("Error fetching events by partner:", error);
-    handleApiError(error, "Unable to fetch event details.");
-  }
-};
-
-export const markParticipantEntered = async (eventId) => {
-  try {
-    console.log(`Marking participant as entered for eventId: ${eventId}`);
-    const response = await axios.patch(
-      `${API_BASE_URL}/auth/patch/EventRegisterScan/${eventId}`
+      `${API_BASE_URL}/auth/create/createRegistrationScan`,
+      {participantId, exhibitionId }
     );
 
     if (!response.data || response.status !== 200) {
@@ -77,13 +60,32 @@ export const markParticipantEntered = async (eventId) => {
     handleApiError(error, "Unable to mark participant as entered.");
   }
 };
+export const fetchEventsByPartner = async (id) => {
+  try { 
+    console.log(id)
+    const response = await axios.get(
+      `${API_BASE_URL}/auth/get/listExhibitionByEventPartner/${id.eventPartner_id}`
+    );
+    // console.log("------------------",response.data)
+    
 
-export const markSessionScanned = async (eventId, sessionId) => {
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    Toast.show({
+      type: "error",
+      text1: "Fetch Failed",
+      text2: error.response?.data?.message || "Unable to fetch events.",
+    });
+    throw error;
+  }
+};
+export const markSessionScanned = async (participantId, exhibitionSessionId) => {
   try {
-    console.log(`Marking session ${sessionId} as scanned for event ${eventId}`);
-    const response = await axios.patch(
-      `${API_BASE_URL}/auth/patch/EventSessionRegisterScan/${eventId}`,
-      { sessionId }
+    // console.log(`Marking session ${sessionId} as scanned for event ${eventId}`);
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/create/createSessionScan`,
+      { participantId, exhibitionSessionId }
     );
 
     if (!response.data || response.status !== 200) {
@@ -109,11 +111,35 @@ export const markSessionScanned = async (eventId, sessionId) => {
 export const validateEventData = (data) => {
   if (!data) return false;
   
-  const requiredFields = ['eventName', 'name', 'ticketCategory'];
+  const requiredFields = ['exhibitionEventName', 'name', 'ticketCategory'];
   return requiredFields.every(field => {
-    if (field === 'eventName') {
-      return data[field]?.EventName;
+    if (field === 'exhibitionEventName') {
+      return data[field]?.exhibitionEventName;
     }
     return data[field];
   });
 };
+
+export const fetchSessionByExhibition=async(exhibitionId)=>{
+  try {
+    const res = await axios.get(`${API_BASE_URL}/auth/get/listEventSessionByExhibition/${exhibitionId}`)
+    console.log("=================",res)
+    return res.data
+  } catch (error) {
+    console.error("Error fetching session by exhibition:", error);
+    handleApiError(error, "Unable to fetch session by exhibition.");
+  }
+} 
+
+
+export const fetchParticipantDetail=async(data)=>{
+  try {
+    const res = await axios.get(`${API_BASE_URL}/auth/participant/forScan/${data}`)
+    console.log("=================",res.data)
+    return res.data
+  } catch (error) {
+    console.error("Error fetching session by exhibition:", error);
+    handleApiError(error, "Unable to fetch session by exhibition.");
+  }
+} 
+ 

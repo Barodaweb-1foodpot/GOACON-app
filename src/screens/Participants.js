@@ -16,6 +16,8 @@ import {
   Keyboard,
   Platform,
   Alert,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
@@ -27,6 +29,7 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient"; // Import LinearGradient
+import { markParticipantEntered } from "../api/eventApi";
 
 export default function Participants() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -48,12 +51,17 @@ export default function Participants() {
   const [entryOpen, setEntryOpen] = useState(false);
   const [entryValue, setEntryValue] = useState(null);
 
-  const [dropdownZIndex, setDropdownZIndex] = useState(0);
+  const [dropdownZIndex, setDropdownZIndex] = useState({
+    event: 3000,
+    entry: 2000,
+    pageSize: 1000,
+  });
   const [filtersVisible, setFiltersVisible] = useState(false);
 
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [pageSizeOpen, setPageSizeOpen] = useState(false);
   const pageSizeOptions = [
+    { label: "10 per page", value: 10 },
     { label: "20 per page", value: 20 },
     { label: "50 per page", value: 50 },
     { label: "All", value: "total" },
@@ -63,7 +71,7 @@ export default function Participants() {
   const [currentPage, setCurrentPage] = useState(1); // Added currentPage state
 
   const entryTypes = [
-    { label: "All", value: null },
+    { label: "All", value: "All" },
     { label: "Scanned", value: true },
     { label: "Not Scanned", value: false },
   ];
@@ -72,6 +80,8 @@ export default function Participants() {
   const partnerId = useMemo(() => {
     return userType === "eventUser" ? selectedEventPartner : user;
   }, [userType, selectedEventPartner, user]);
+
+  const [isScrolling, setIsScrolling] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -95,11 +105,11 @@ export default function Participants() {
   const fetchEvents = async () => {
     try {
       const eventsList = await fetchEventsByPartner(partnerId);
-
+      console.log("eventsList",eventsList)
       const formattedEvents = [
-        { label: "All Events", value: null },
-        ...eventsList.map((event) => ({
-          label: event.EventName,
+        { label: "Select Events", value: null },
+        ...eventsList.data.map((event) => ({
+          label: event.exhibitionEventName,
           value: event._id,
         })),
       ];
@@ -120,26 +130,17 @@ export default function Participants() {
         eventPartner: partnerId,
       };
       if (eventValue) {
-        basePayload.EventName = eventValue;
+        basePayload.exhibitionId = eventValue;
       }
 
       // Total
       const totalResponse = await fetchParticipants(basePayload);
-      setTotalCount(totalResponse.count);
+      console.log("mmmmmmmmmmmmmmm",totalResponse)
+      setTotalCount(totalResponse.totalCount);
+      setNotScannedCount(totalResponse.notScannedCount)
+      setScannedCount(totalResponse.scannedCount)
 
-      // Scanned
-      const scannedResponse = await fetchParticipants({
-        ...basePayload,
-        isScanned: true,
-      });
-      setScannedCount(scannedResponse.count);
-
-      // Not Scanned
-      const notScannedResponse = await fetchParticipants({
-        ...basePayload,
-        isScanned: false,
-      });
-      setNotScannedCount(notScannedResponse.count);
+      
     } catch (error) {
       console.error("Error fetching counts:", error);
       Alert.alert("Error", "Failed to fetch counts.");
@@ -148,10 +149,14 @@ export default function Participants() {
 
   const fetchParticipantsList = async (page = 1, reset = false) => {
     if (!eventValue) return; // Do not fetch if no event is selected
-
-    setLoading(true);
+    
+    // Don't show loading indicator if we're already refreshing
+    if (!refreshing) {
+      setLoading(true);
+    }
+    
     try {
-      const currentPageSize = pageSize === "total" ? 10000 : pageSize; // Assuming 10000 as a large number for "All"
+      const currentPageSize = pageSize === "total" ? 10000 : pageSize;
 
       const payload = {
         skip: (page - 1) * (currentPageSize === "total" ? 10000 : currentPageSize),
@@ -161,7 +166,7 @@ export default function Participants() {
         eventPartner: partnerId,
       };
       if (eventValue) {
-        payload.EventName = eventValue;
+        payload.exhibitionId = eventValue;
       }
       if (entryValue !== null) {
         payload.isScanned = entryValue;
@@ -191,13 +196,13 @@ export default function Participants() {
     }
   };
 
-  const loadNextPage = async () => {
-    if (noMoreData || pageSize === "total") return;
+  const loadNextPage = useCallback(() => {
+    if (noMoreData || loading || pageSize === "total" || isScrolling) return;
 
     const nextPage = currentPage + 1;
     setCurrentPage(nextPage);
-    await fetchParticipantsList(nextPage);
-  };
+    fetchParticipantsList(nextPage);
+  }, [noMoreData, loading, pageSize, currentPage, isScrolling, fetchParticipantsList]);
 
   const handleScanStatusUpdate = useCallback(
     async (participantId, currentStatus) => {
@@ -222,10 +227,11 @@ export default function Participants() {
             text: "Scan",
             onPress: async () => {
               try {
-                const resp = await updateParticipantScanStatus(
+                const resp = await markParticipantEntered(
                   participantId,
-                  true
+                  eventValue
                 );
+                if(resp.isOk) fetchParticipantsList()
 
                 setParticipants((prev) =>
                   prev.map((p) =>
@@ -261,11 +267,19 @@ export default function Participants() {
   };
 
   const onRefresh = async () => {
-    if (!eventValue) return;
+    if (!eventValue || refreshing) return;
+    
     setRefreshing(true);
+    setLoading(false); // Ensure main loader is off when pull-to-refresh is active
     setCurrentPage(1);
-    await Promise.all([fetchParticipantsList(1, true), fetchCounts()]);
-    setRefreshing(false);
+    
+    try {
+      await Promise.all([fetchParticipantsList(1, true), fetchCounts()]);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const clearFilters = () => {
@@ -281,21 +295,57 @@ export default function Participants() {
 
   const handleEventOpen = (open) => {
     setEventOpen(open);
-    setEntryOpen(false);
-    setPageSizeOpen(false);
-    setDropdownZIndex(open ? 3000 : 0);
+    if (open) {
+      setEntryOpen(false);
+      setPageSizeOpen(false);
+      setDropdownZIndex({
+        event: 3000,
+        entry: 0,
+        pageSize: 0,
+      });
+    } else {
+      setDropdownZIndex({
+        event: 3000,
+        entry: 2000,
+        pageSize: 1000,
+      });
+    }
   };
   const handleEntryOpen = (open) => {
     setEntryOpen(open);
-    setEventOpen(false);
-    setPageSizeOpen(false);
-    setDropdownZIndex(open ? 3000 : 0);
+    if (open) {
+      setEventOpen(false);
+      setPageSizeOpen(false);
+      setDropdownZIndex({
+        event: 0,
+        entry: 3000,
+        pageSize: 0,
+      });
+    } else {
+      setDropdownZIndex({
+        event: 3000,
+        entry: 2000,
+        pageSize: 1000,
+      });
+    }
   };
   const handlePageSizeOpen = (open) => {
     setPageSizeOpen(open);
-    setEventOpen(false);
-    setEntryOpen(false);
-    setDropdownZIndex(open ? 3000 : 0);
+    if (open) {
+      setEventOpen(false);
+      setEntryOpen(false);
+      setDropdownZIndex({
+        event: 0,
+        entry: 0,
+        pageSize: 3000,
+      });
+    } else {
+      setDropdownZIndex({
+        event: 3000,
+        entry: 2000,
+        pageSize: 1000,
+      });
+    }
   };
 
   const renderItem = useCallback(
@@ -309,8 +359,10 @@ export default function Participants() {
     [handleScanStatusUpdate, navigation]
   );
 
-  const renderFooter = () => {
-    if (pageSize === "total") return null;
+  const keyExtractor = useCallback((item) => item._id, []);
+
+  const renderFooter = useCallback(() => {
+    if (pageSize === "total" || refreshing) return null;
 
     if (noMoreData) {
       return (
@@ -322,13 +374,13 @@ export default function Participants() {
 
     return (
       <View style={styles.footerContainer}>
-        {loading ? (
+        {loading && !refreshing ? (
           <ActivityIndicator size="small" color="#1A5276" />
         ) : (
           <TouchableOpacity
             style={styles.nextButton}
             onPress={loadNextPage}
-            disabled={loading || noMoreData}
+            disabled={loading || noMoreData || refreshing}
             accessible={true}
             accessibilityLabel="Load next set of participants"
           >
@@ -337,146 +389,186 @@ export default function Participants() {
         )}
       </View>
     );
-  };
+  }, [loading, noMoreData, loadNextPage, pageSize, refreshing]);
+
+  const handleScroll = useCallback((event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.y;
+    setIsScrolling(true);
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 150);
+  }, []);
+
+  const scrollTimeoutRef = React.useRef(null);
 
   const selectedEventLabel =
     events.find((event) => event.value === eventValue)?.label || "Participants";
 
   return (
-    <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      {/* Replace the main container View with LinearGradient */}
-      <LinearGradient
-        colors={["#000B19", "#001F3F", "#003366"]} // Same gradient as Homepage
-        style={styles.gradientContainer}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-      >
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <LinearGradient
+      colors={["#000B19", "#001F3F", "#003366"]}
+      style={styles.gradientContainer}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              accessible={true}
-              accessibilityLabel="Go back"
-            >
-              <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.title}>
-              {eventValue ? selectedEventLabel : "Participants"}
-            </Text>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setFiltersVisible(!filtersVisible)}
-              accessible={true}
-              accessibilityLabel="Toggle filters"
-            >
-              <Icon name="tune" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessible={true}
+            accessibilityLabel="Go back"
+          >
+            <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            {eventValue ? selectedEventLabel : "Participants"}
+          </Text>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setFiltersVisible(!filtersVisible)}
+            accessible={true}
+            accessibilityLabel="Toggle filters"
+          >
+            <Icon name="tune" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
 
-          {/* Removed the selected event display below the header */}
+        <View style={styles.content}>
+          <View style={styles.fixedContent}>
+            {filtersVisible ? (
+              <>
+                <View style={styles.filtersContainer}>
+                  <View style={styles.dropdownsWrapper}>
+                    <DropDownPicker
+                      open={eventOpen}
+                      value={eventValue}
+                      items={events}
+                      setOpen={handleEventOpen}
+                      setValue={setEventValue}
+                      setItems={setEvents}
+                      placeholder="Select Event"
+                      style={styles.dropdown}
+                      containerStyle={styles.dropdownContainer}
+                      listItemContainerStyle={styles.listItemContainer}
+                      dropDownContainerStyle={styles.dropDownContainerStyle}
+                      itemSeparator={true}
+                      itemSeparatorStyle={styles.itemSeparator}
+                      zIndex={dropdownZIndex.event}
+                      zIndexInverse={6000 - dropdownZIndex.event}
+                      listMode="SCROLLVIEW"
+                      scrollViewProps={{
+                        nestedScrollEnabled: true,
+                      }}
+                      ArrowDownIconComponent={() => (
+                        <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                      )}
+                      ArrowUpIconComponent={() => (
+                        <Icon name="keyboard-arrow-up" size={24} color="#666" />
+                      )}
+                      accessible={true}
+                      accessibilityLabel="Select Event"
+                    />
 
-          <View style={styles.content}>
-            <View style={styles.fixedContent}>
-              {filtersVisible ? (
-                <>
-                  <View
-                    style={[styles.filtersContainer, { zIndex: dropdownZIndex }]}
-                  >
-                    <View style={styles.dropdownsWrapper}>
+                    <View style={{ marginTop: 10 }}>
                       <DropDownPicker
-                        open={eventOpen}
-                        value={eventValue}
-                        items={events}
-                        setOpen={handleEventOpen}
-                        setValue={setEventValue}
-                        setItems={setEvents}
-                        placeholder="Select Event"
+                        open={entryOpen}
+                        value={entryValue}
+                        items={entryTypes}
+                        setOpen={handleEntryOpen}
+                        setValue={setEntryValue}
+                        placeholder="Select Entry Type"
                         style={styles.dropdown}
                         containerStyle={styles.dropdownContainer}
                         listItemContainerStyle={styles.listItemContainer}
                         dropDownContainerStyle={styles.dropDownContainerStyle}
                         itemSeparator={true}
                         itemSeparatorStyle={styles.itemSeparator}
-                        zIndex={3000}
+                        zIndex={dropdownZIndex.entry}
+                        zIndexInverse={6000 - dropdownZIndex.entry}
                         listMode="SCROLLVIEW"
+                        scrollViewProps={{
+                          nestedScrollEnabled: true,
+                        }}
+                        ArrowDownIconComponent={() => (
+                          <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                        )}
+                        ArrowUpIconComponent={() => (
+                          <Icon name="keyboard-arrow-up" size={24} color="#666" />
+                        )}
                         accessible={true}
-                        accessibilityLabel="Select Event"
+                        accessibilityLabel="Select Entry Type"
                       />
-
-                      <View style={{ marginTop: 10 }}>
-                        <DropDownPicker
-                          open={entryOpen}
-                          value={entryValue}
-                          items={entryTypes}
-                          setOpen={handleEntryOpen}
-                          setValue={setEntryValue}
-                          placeholder="Select Entry Type"
-                          style={styles.dropdown}
-                          containerStyle={styles.dropdownContainer}
-                          listItemContainerStyle={styles.listItemContainer}
-                          dropDownContainerStyle={styles.dropDownContainerStyle}
-                          itemSeparator={true}
-                          itemSeparatorStyle={styles.itemSeparator}
-                          zIndex={2000}
-                          listMode="SCROLLVIEW"
-                          accessible={true}
-                          accessibilityLabel="Select Entry Type"
-                        />
-                      </View>
-
-                      <View style={{ marginTop: 10 }}>
-                        <DropDownPicker
-                          open={pageSizeOpen}
-                          value={pageSize}
-                          items={pageSizeOptions}
-                          setOpen={handlePageSizeOpen}
-                          setValue={setPageSize}
-                          placeholder="Select Page Size"
-                          style={styles.dropdown}
-                          containerStyle={styles.dropdownContainer}
-                          listItemContainerStyle={styles.listItemContainer}
-                          dropDownContainerStyle={styles.dropDownContainerStyle}
-                          itemSeparator={true}
-                          itemSeparatorStyle={styles.itemSeparator}
-                          zIndex={1000}
-                          listMode="SCROLLVIEW"
-                          accessible={true}
-                          accessibilityLabel="Select Page Size"
-                        />
-                      </View>
                     </View>
 
-                    <View style={styles.countsContainer}>
-                      <CountCard title="Total" count={totalCount} color="#1A5276" />
-                      <CountCard
-                        title="Scanned"
-                        count={scannedCount}
-                        color="#4CAF50"
-                      />
-                      <CountCard
-                        title="Not Scan"
-                        count={notScannedCount}
-                        color="#FFA000"
+                    <View style={{ marginTop: 10 }}>
+                      <DropDownPicker
+                        open={pageSizeOpen}
+                        value={pageSize}
+                        items={pageSizeOptions}
+                        setOpen={handlePageSizeOpen}
+                        setValue={setPageSize}
+                        placeholder="Select Page Size"
+                        style={styles.dropdown}
+                        containerStyle={styles.dropdownContainer}
+                        listItemContainerStyle={styles.listItemContainer}
+                        dropDownContainerStyle={styles.dropDownContainerStyle}
+                        itemSeparator={true}
+                        itemSeparatorStyle={styles.itemSeparator}
+                        zIndex={dropdownZIndex.pageSize}
+                        zIndexInverse={6000 - dropdownZIndex.pageSize}
+                        listMode="SCROLLVIEW"
+                        scrollViewProps={{
+                          nestedScrollEnabled: true,
+                        }}
+                        ArrowDownIconComponent={() => (
+                          <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                        )}
+                        ArrowUpIconComponent={() => (
+                          <Icon name="keyboard-arrow-up" size={24} color="#666" />
+                        )}
+                        accessible={true}
+                        accessibilityLabel="Select Page Size"
                       />
                     </View>
                   </View>
 
-                  <View style={styles.clearFiltersContainer}>
-                    <TouchableOpacity
-                      style={styles.clearFiltersButton}
-                      onPress={clearFilters}
-                      accessible={true}
-                      accessibilityLabel="Clear all filters"
-                    >
-                      <Icon name="clear-all" size={20} color="#1A5276" />
-                      <Text style={styles.clearFiltersText}>Clear Filters</Text>
-                    </TouchableOpacity>
+                  <View style={styles.countsContainer}>
+                    <CountCard title="Total" count={totalCount} color="#1A5276" />
+                    <CountCard
+                      title="Scanned"
+                      count={scannedCount}
+                      color="#4CAF50"
+                    />
+                    <CountCard
+                      title="Not Scan"
+                      count={notScannedCount}
+                      color="#FFA000"
+                    />
                   </View>
-                </>
-              ) : (
+                </View>
+
+                <View style={styles.clearFiltersContainer}>
+                  <TouchableOpacity
+                    style={styles.clearFiltersButton}
+                    onPress={clearFilters}
+                    accessible={true}
+                    accessibilityLabel="Clear all filters"
+                  >
+                    <Icon name="clear-all" size={20} color="#1A5276" />
+                    <Text style={styles.clearFiltersText}>Clear Filters</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <TouchableWithoutFeedback onPress={dismissKeyboard}>
                 <View style={styles.searchContainer}>
                   <Icon
                     name="search"
@@ -495,133 +587,156 @@ export default function Participants() {
                     accessibilityLabel="Search participants"
                   />
                 </View>
-              )}
-            </View>
-
-            <View style={styles.listWrapper}>
-              {!eventValue ? (
-                // Display prompt to select an event
-                <View style={styles.initialPromptContainer}>
-                  <Icon name="event-note" size={60} color="#1A5276" />
-                  <Text style={styles.initialPromptText}>
-                    Please select an filters to view participants
-                  </Text>
-                </View>
-              ) : loading && currentPage === 1 ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#1A5276" />
-                  <Text style={styles.loadingText}>Loading participants...</Text>
-                </View>
-              ) : participants.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Icon name="people-outline" size={60} color="#1A5276" />
-                  <Text style={styles.emptyText}>No participants found</Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={participants}
-                  renderItem={renderItem}
-                  keyExtractor={(item) => item._id}
-                  showsVerticalScrollIndicator={true}
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  keyboardShouldPersistTaps="always"
-                  nestedScrollEnabled={true} // Enable nested scrolling
-                  scrollEnabled={true} // Explicitly enable scrolling
-                  contentContainerStyle={[
-                    styles.listContainer,
-                    { flexGrow: 1 }, // Ensure content grows to fill available space
-                  ]}
-                  ListFooterComponent={renderFooter}
-                  // Performance + Smooth Scrolling
-                  initialNumToRender={8}
-                  maxToRenderPerBatch={10}
-                  windowSize={21}
-                  removeClippedSubviews={true}
-                  decelerationRate="fast"
-                  scrollEventThrottle={16}
-                />
-              )}
-            </View>
+              </TouchableWithoutFeedback>
+            )}
           </View>
+
+          <ScrollView 
+            style={styles.scrollViewContainer}
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={true}
+            scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#1A5276"]}
+                tintColor="#1A5276"
+              />
+            }
+          >
+            {!eventValue ? (
+              // Display prompt to select an event
+              <View style={styles.initialPromptContainer}>
+                <Icon name="event-note" size={60} color="#1A5276" />
+                <Text style={styles.initialPromptText}>
+                  Please select filters to view participants
+                </Text>
+              </View>
+            ) : loading && !refreshing && currentPage === 1 ? (
+              // Only show main loader when not refreshing
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#1A5276" />
+                <Text style={styles.loadingText}>Loading participants...</Text>
+              </View>
+            ) : participants.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Icon name="people-outline" size={60} color="#1A5276" />
+                <Text style={styles.emptyText}>No participants found</Text>
+              </View>
+            ) : (
+              <>
+                {participants.map(participant => (
+                  <ParticipantCard
+                    key={participant._id}
+                    participant={participant}
+                    onPress={() => handleScanStatusUpdate(participant._id, participant.isScanned)}
+                    navigation={navigation}
+                  />
+                ))}
+                
+                {renderFooter()}
+              </>
+            )}
+          </ScrollView>
         </View>
-      </LinearGradient>
-    </TouchableWithoutFeedback>
+      </View>
+    </LinearGradient>
   );
 }
 
 // Memoized ParticipantCard Component
 const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-  };
+  }, []);
 
   return (
     <TouchableOpacity
-      style={[styles.card, participant.isScanned && styles.scannedCard]}
-      onPress={onPress}
-      disabled={participant.isScanned}
-      accessible={true}
-      accessibilityLabel={`Scan participant ${participant.name}`}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.nameText}>{participant?.name || "N/A"}</Text>
-        <View
+    style={[
+      styles.card,
+      participant.registrationScan  && participant.registrationScan !== null && styles.scannedCard,
+    ]}
+    onPress={onPress}
+    disabled={participant.registrationScan  && participant.registrationScan !== null}
+    accessible={true}
+    accessibilityLabel={`Scan participant ${participant.name}`}
+  >
+    <View style={styles.cardHeader}>
+      <Text style={styles.nameText}>
+        {participant?.firstName || " "}
+        {participant?.lastName || " "}
+      </Text>
+      <View
+        style={[
+          styles.statusBadge,
+          {
+            backgroundColor:
+              participant.registrationScan  && participant.registrationScan !== null ? "#4CAF50" : "#FFA000",
+          },
+        ]}
+      >
+        <Icon
+          name={
+            participant.registrationScan  && participant.registrationScan !== null
+              ? "check-circle"
+              : "pending"
+          }
+          size={16}
+          color="#FFFFFF"
+        />
+        <Text style={styles.statusText}>
+          {participant.registrationScan  && participant.registrationScan !== null ? "Scanned" : "Not Scanned"}
+        </Text>
+      </View>
+    </View>
+  
+    <View style={styles.cardContent}>
+      <View style={styles.infoRow}>
+        <Icon
+          name="badge"
+          size={20}
+          color={
+            participant.registrationScan  && participant.registrationScan !== null ? "#4CAF50" : "#2C3E50"
+          }
+        />
+        <Text
           style={[
-            styles.statusBadge,
-            { backgroundColor: participant.isScanned ? "#4CAF50" : "#FFA000" },
+            styles.infoText,
+            participant.registrationScan  && participant.registrationScan !== null && styles.scannedText,
           ]}
         >
-          <Icon
-            name={participant.isScanned ? "check-circle" : "pending"}
-            size={16}
-            color="#FFFFFF"
-          />
-          <Text style={styles.statusText}>
-            {participant.isScanned ? "Scanned" : "Not Scanned"}
-          </Text>
-        </View>
+          {participant.companyName || "N/A"}
+        </Text>
       </View>
-
-      <View style={styles.cardContent}>
+  
+      {participant.registrationScan && participant.scannedAt && (
         <View style={styles.infoRow}>
-          <Icon
-            name="badge"
-            size={20}
-            color={participant.isScanned ? "#4CAF50" : "#2C3E50"}
-          />
-          <Text
-            style={[styles.infoText, participant.isScanned && styles.scannedText]}
-          >
-            {participant.designation || "N/A"}
+          <Icon name="schedule" size={20} color="#4CAF50" />
+          <Text style={[styles.infoText, styles.scannedText]}>
+            {formatDate(participant.scannedAt)}
           </Text>
         </View>
-
-        {participant.isScanned && participant.scannedAt && (
-          <View style={styles.infoRow}>
-            <Icon name="schedule" size={20} color="#4CAF50" />
-            <Text style={[styles.infoText, styles.scannedText]}>
-              {formatDate(participant.scannedAt)}
-            </Text>
-          </View>
-        )}
-
-        {participant.isScanned && (
-          <TouchableOpacity
-            style={styles.scannedOverlay}
-            onPress={() =>
-              navigation.navigate("EventSession", { participant: participant })
-            }
-            accessible={true}
-            accessibilityLabel={`View event sessions for ${participant.name}`}
-          >
-            <Text style={styles.scannedMessage}>View Event Sessions</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+      )}
+  
+      {participant.registrationScan && (
+        <TouchableOpacity
+          style={styles.scannedOverlay}
+          onPress={() =>
+            navigation.navigate("EventSession", { participant: participant })
+          }
+          accessible={true}
+          accessibilityLabel={`View event sessions for ${participant.name}`}
+        >
+          <Text style={styles.scannedMessage}>View Event Sessions</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </TouchableOpacity>
+  
   );
 });
 
@@ -693,6 +808,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 45,
     backgroundColor: "#FFFFFF",
+    paddingHorizontal: 15,
   },
   dropdownContainer: {
     height: 45,
@@ -702,6 +818,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderRadius: 12,
+    position: 'absolute',
+    maxHeight: 200,
   },
   listItemContainer: {
     height: 45,
@@ -773,14 +891,19 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: "#1A5276",
   },
+  scrollViewContainer: {
+    flex: 1,
+    backgroundColor: '#F5F6FA',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
   listWrapper: {
     flex: 1,
     backgroundColor: "#F5F6FA",
-    paddingHorizontal: 15,
-    paddingTop: 10,
-  },
-  listContainer: {
-    paddingBottom: 15,
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -878,22 +1001,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     color: "#1A5276",
   },
-  footerLoader: {
-    paddingVertical: 20,
-  },
-  initialPromptContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  initialPromptText: {
-    marginTop: 10,
-    fontSize: 16,
-    fontFamily: "Poppins-Medium",
-    color: "#1A5276",
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
   footerContainer: {
     paddingVertical: 20,
     alignItems: "center",
@@ -913,5 +1020,18 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: "Poppins-Medium",
+  },
+  initialPromptContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  initialPromptText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: "#1A5276",
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
 });

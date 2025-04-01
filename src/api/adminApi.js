@@ -25,7 +25,7 @@ export const fetchEventPartners = async () => {
 
 export const eventPartnerLogin = async (email, password) => {
   try {
-    console.log("Attempting Event Partner login...");
+    console.log("Attempting Event Partner login...",API_BASE_URL);
     const response = await axios.post(
       `${API_BASE_URL}/auth/eventPartnerLogin`,
       {

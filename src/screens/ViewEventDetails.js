@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import placeholder from "../../assets/placeholder.jpg";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { fetchSessionByExhibition } from "../api/eventApi";
 
 const { width } = Dimensions.get("window");
 
@@ -83,7 +84,7 @@ const EventImage = ({ eventImage }) => {
   const [loaded, setLoaded] = React.useState(false);
   const imageSource =
     eventImage && eventImage !== "null"
-      ? { uri: `https://serverhiindia.barodaweb.org/${eventImage}` }
+      ? { uri: `https://server.bwebevents.com/${eventImage}` }
       : placeholder;
 
   return (
@@ -127,6 +128,17 @@ export default function ViewEventDetails() {
       }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+   fetchSession()
+  }, [event]);
+  const [exhibitionSession, setExhibitionSession] = useState([])
+  const fetchSession = async () => {
+    console.log(event);
+    const res = await fetchSessionByExhibition(event._id)
+    console.log("-------------",res)
+    setExhibitionSession(res.data)
+  }
 
   const formatDateRange = (startDate, endDate) => {
     if (!startDate || !endDate) return "N/A";
@@ -175,15 +187,15 @@ export default function ViewEventDetails() {
 
   const handleShare = async () => {
     try {
-      const dateRange = formatDateRange(event.StartDate, event.EndDate);
-      const message = `✨ *${event?.EventName}* ✨
+      const dateRange = formatDateRange(event.startTime, event.endTime);
+      const message = `✨ *${event?.exhibitionEventName}* ✨
 📅 *Date & Time:* ${dateRange}
-📍 *Location:* ${event.EventLocation}
-🗺️ *Google Maps:* ${event.googleMapLink}`;
+📍 *Location:* ${event.address}
+🗺️ *Google Maps:* ${event.locationLink}`;
 
       await Share.share({
         message,
-        title: event.EventName,
+        title: event.exhibitionEventName,
       });
     } catch (error) {
       console.error("Error sharing event:", error);
@@ -211,7 +223,7 @@ export default function ViewEventDetails() {
         >
           <Icon name="arrow-back-ios" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>{event.EventName}</Text>
+        <Text style={styles.title}>{event.exhibitionEventName}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Event Image with Skeleton Loader */}
@@ -219,7 +231,7 @@ export default function ViewEventDetails() {
           style={[
             styles.imageContainer,
             {
-              opacity: fadeAnim,
+              // opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
@@ -232,7 +244,7 @@ export default function ViewEventDetails() {
           style={[
             styles.detailsContainer,
             {
-              opacity: fadeAnim,
+              // opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
@@ -246,7 +258,7 @@ export default function ViewEventDetails() {
                 </View>
                 <View style={styles.textContainer}>
                   <Text style={styles.value}>
-                    {formatDateRange(event.StartDate, event.EndDate)}
+                    {formatDateRange(event.startTime, event.endTime)}
                   </Text>
                 </View>
               </View>
@@ -258,8 +270,8 @@ export default function ViewEventDetails() {
             <Text style={styles.sectionTitle}>About Event</Text>
             <View style={styles.contentCard}>
               <Text style={styles.description}>
-                {event.EventDescreption
-                  ? event.EventDescreption.replace(/<[^>]+>/g, "")
+                {event.description
+                  ? event.description.replace(/<[^>]+>/g, "")
                   : "No description available."}
               </Text>
             </View>
@@ -270,12 +282,12 @@ export default function ViewEventDetails() {
             <Text style={styles.sectionTitle}>Location</Text>
             <TouchableOpacity
               style={styles.locationCard}
-              onPress={() => Linking.openURL(event.googleMapLink)}
+              onPress={() => Linking.openURL(event.locationLink)}
             >
               <View style={styles.iconContainer}>
                 <Icon name="location-on" size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.locationText}>{event.EventLocation}</Text>
+              <Text style={styles.locationText}>{event.address}</Text>
               <Icon name="open-in-new" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -283,8 +295,8 @@ export default function ViewEventDetails() {
           {/* Sessions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Sessions</Text>
-            {event.SessionDetails && event.SessionDetails.length > 0 ? (
-              event.SessionDetails.map((session, index) => (
+            {exhibitionSession && exhibitionSession.length > 0 ? (
+              exhibitionSession.map((session, index) => (
                 <View key={session._id} style={styles.sessionCard}>
                   <Text style={styles.sessionNumber}>
                     {(index + 1).toString().padStart(2, "0")}
@@ -308,7 +320,7 @@ export default function ViewEventDetails() {
         style={[
           styles.actionsContainer,
           {
-            opacity: fadeAnim,
+            // opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
           },
         ]}
@@ -477,14 +489,14 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   actionsContainer: {
-    position: "absolute",
-    bottom: 0,
+    // position: "absolute",
+    bottom: 50,
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
     padding: 10,
-    backgroundColor: "rgba(0, 11, 25, 0.9)",
+    // backgroundColor: "rgba(0, 11, 25, 0.9)",
   },
   shareButton: {
     backgroundColor: "#4CAF50",

@@ -2,28 +2,7 @@ import axios from "axios";
 import Toast from "react-native-toast-message";
 import { API_BASE_URL } from "@env";
 
-// Fetch events by partner
-export const fetchEventsByPartner = async (id) => {
-  try {
-    const response = await axios.get(
-      `${API_BASE_URL}/auth/list/eventByEventPartner/${id}`
-    );
 
-    if (!response.data || !response.data.event) {
-      throw new Error("Invalid response format");
-    }
-
-    return response.data.event;
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    Toast.show({
-      type: "error",
-      text1: "Fetch Failed",
-      text2: error.response?.data?.message || "Unable to fetch events.",
-    });
-    throw error;
-  }
-};
 
 // Fetch sessions by event ID
 export const fetchSessionsByEvent = async (eventId) => {
@@ -96,10 +75,10 @@ export const updateSessionScanStatus = async (sessionId, isScanned) => {
 };
 
 // Fetch participant counts by session ID
-export const fetchParticipantCounts = async (sessionId) => {
+export const fetchParticipantCounts = async (sessionId , exhibitionId) => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/auth/getParticipantCounts/${sessionId}`
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/participant/sessionScanCount`,{sessionId , exhibitionId}
       );
   
       if (response.data) {

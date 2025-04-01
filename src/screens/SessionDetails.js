@@ -21,15 +21,17 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
-import {
-  fetchEventsByPartner,
+import { 
   fetchSessionsByEvent,
   fetchParticipantCounts,
 } from "../api/sessionApi";
 import DropDownPicker from "react-native-dropdown-picker";
+import { fetchEventsByPartner } from "../api/participantApi";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient"; // Import LinearGradient
+import { fetchEventPartners } from "../api/adminApi";
+import { fetchSessionByExhibition } from "../api/eventApi";
 
 // Enable LayoutAnimation on Android
 if (
@@ -117,11 +119,11 @@ export default function SessionDetails() {
     try {
       const partnerId = userType === "eventUser" ? selectedEventPartner : user;
       const eventsList = await fetchEventsByPartner(partnerId);
-
+      console.log(eventsList)
       const formattedEvents = [
         { label: "All Events", value: null },
-        ...eventsList.map((event) => ({
-          label: event.EventName,
+        ...eventsList.data.map((event) => ({
+          label: event.exhibitionEventName,
           value: event._id,
         })),
       ];
@@ -141,9 +143,10 @@ export default function SessionDetails() {
   const fetchSessions = async (eventId) => {
     setLoadingSessions(true);
     try {
-      const response = await fetchSessionsByEvent(eventId);
-      if (response.success) {
-        const fetchedSessions = response.find;
+      const response = await fetchSessionByExhibition(eventId);
+      console.log("0000000",response)
+      if (response.isOk) {
+        const fetchedSessions = response.data;
 
         setSessions(fetchedSessions);
 
@@ -174,12 +177,11 @@ export default function SessionDetails() {
   const fetchSessionCounts = async (sessionId) => {
     setLoadingParticipants(true);
     try {
-      const counts = await fetchParticipantCounts(sessionId);
+      const counts = await fetchParticipantCounts(sessionId,eventValue);
+      console.log("llllllllllllll",counts)
       setTotalParticipants(counts.totalParticipants || 0);
-      setScannedParticipants(counts.scannedParticipants || 0);
-      setNotScannedParticipants(
-        (counts.totalParticipants || 0) - (counts.scannedParticipants || 0)
-      );
+      setScannedParticipants(counts.scannedCount || 0);
+      setNotScannedParticipants(counts.notScannedCount || 0);
 
       // Scroll to the selected session after counts are fetched
       const index = filteredSessions.findIndex(
