@@ -57,7 +57,7 @@ const SkeletonLoader = ({ style }) => {
         <LinearGradient
           colors={[
             "rgba(255, 255, 255, 0)",
-            "rgba(245, 245, 245, 0.95)", // Off-white color
+            "rgba(255, 255, 255, 0.5)",
             "rgba(255, 255, 255, 0)",
           ]}
           start={{ x: 0, y: 0 }}
@@ -71,7 +71,7 @@ const SkeletonLoader = ({ style }) => {
 
 const skeletonStyles = StyleSheet.create({
   loaderContainer: {
-    backgroundColor: "#333333", // Darker background for off-white effect
+    backgroundColor: "#E0E0E0",
     overflow: "hidden",
   },
 });
