@@ -27,7 +27,8 @@ export const AuthProvider = ({ children }) => {
       const _id = await AsyncStorage.getItem("_id");
       const role = await AsyncStorage.getItem("role");
       setUserType(role)
-      const eventPartner = await AsyncStorage.getItem("selectedEventPartner");
+      if(_id)
+      {const eventPartner = await AsyncStorage.getItem("selectedEventPartner");
       if (role === "eventUser") {
         const data = await fetchEventUserDetails(_id);
         setSelectedEventPartner(eventPartner);
@@ -37,7 +38,7 @@ export const AuthProvider = ({ children }) => {
       if (role === "eventPartner") {
         const data = await fetchEventPartnerDetails(_id);
         setUser(data._id);
-      }
+      }}
     } catch (error) {
       console.error("Failed to fetch user details:", error);
       setError(error.message || "Failed to fetch user details.");
