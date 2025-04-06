@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react/prop-types */
 import React, { createContext, useContext, useState } from "react";
 // import { fetchUserDetails } from "../api/adminApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -26,17 +24,20 @@ export const AuthProvider = ({ children }) => {
     try {
       const _id = await AsyncStorage.getItem("_id");
       const role = await AsyncStorage.getItem("role");
+      const token = await AsyncStorage.getItem("token");
+      console.log("role", role);
+      console.log("id", _id);
       setUserType(role)
       if(_id)
       {const eventPartner = await AsyncStorage.getItem("selectedEventPartner");
       if (role === "eventUser") {
-        const data = await fetchEventUserDetails(_id);
+        const data = await fetchEventUserDetails(_id, token);
         setSelectedEventPartner(eventPartner);
         setUser(data._id);
       }
       
       if (role === "eventPartner") {
-        const data = await fetchEventPartnerDetails(_id);
+        const data = await fetchEventPartnerDetails(_id, token);
         setUser(data._id);
       }}
     } catch (error) {

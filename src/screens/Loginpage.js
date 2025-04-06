@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -15,6 +13,7 @@ import {
   StatusBar,
   ScrollView,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { Formik } from "formik";
 import * as Yup from "yup";
@@ -23,7 +22,6 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useAuthContext } from "../context/AuthContext";
-import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
@@ -35,17 +33,15 @@ import {
 import logo from "../../assets/app_icon.png";
 
 export default function LoginPage() {
-  // [Previous state and hooks remain exactly the same]
   const [localUserType, setLocalUserType] = useState("eventPartner");
   const [eventPartners, setEventPartners] = useState([]);
   const [eventPartnersOpen, setEventPartnersOpen] = useState(false);
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser, setSelectedEventPartner, setUserType, loading } = useAuthContext();
-  const navigation = useNavigation();
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const { setUser, setSelectedEventPartner, setUserType } = useAuthContext();
   const formikRef = useRef(null);
 
-  // [Validation schema, useEffect, and handlers remain exactly the same]
   const loginValidationSchema = Yup.object().shape({
     email: Yup.string()
       .email("Please enter a valid email")
@@ -92,6 +88,7 @@ export default function LoginPage() {
           await AsyncStorage.setItem("role", "eventPartner");
           setUser(response.data.eventPartner._id);
           setSelectedEventPartner(response.data.eventPartner._id);
+          await AsyncStorage.setItem("token", response.data.token);
           setUserType("eventPartner");
         } else {
           setServerError("Invalid email or password");
@@ -107,6 +104,7 @@ export default function LoginPage() {
           await AsyncStorage.setItem("role", "eventUser");
           setUser(response.data.user._id);
           setSelectedEventPartner(values.eventPartner);
+          await AsyncStorage.setItem("token", response.data.token);
           setUserType("eventUser");
         } else {
           setServerError("Invalid email or password");
@@ -127,24 +125,19 @@ export default function LoginPage() {
     >
       <StatusBar barStyle="light-content" backgroundColor="#000B19" />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Top Logo Section with LinearGradient */}
-          <LinearGradient
-            colors={["#000B19", "#001F3F", "#003366"]}
-            style={styles.topBackground}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-          >
-            <View style={styles.logoContainer}>
-              <Image source={logo} style={styles.logo} />
-            </View>
-          </LinearGradient>
+      <LinearGradient
+        colors={["#000B19", "#001F3F", "#003366"]}
+        style={styles.topBackground}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <View style={styles.logoContainer}>
+          <Image source={logo} style={styles.logo} />
+        </View>
+      </LinearGradient>
 
-          {/* Rest of the form remains exactly the same */}
+      <View style={styles.formContainerWrapper}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.formContainer}>
             <Text style={styles.welcomeText}>Welcome Back.</Text>
 
@@ -175,124 +168,179 @@ export default function LoginPage() {
                 <Text style={styles.radioText}>Event User</Text>
               </TouchableOpacity>
             </View>
-
-            <Formik
-              innerRef={formikRef}
-              initialValues={{
-                email: "",
-                password: "",
-                eventPartner: "",
-              }}
-              validationSchema={loginValidationSchema}
-              onSubmit={handleLogin}
+            
+            <ScrollView 
+              style={styles.scrollableContent} 
+              contentContainerStyle={styles.scrollContentContainer}
+              keyboardShouldPersistTaps="handled"
             >
-              {({
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                values,
-                errors,
-                touched,
-                isSubmitting,
-                setFieldValue,
-              }) => (
-                <View style={styles.formikContainer}>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>
-                      User name/Email ID <Text style={styles.asterisk}>*</Text>
-                    </Text>
-                    <View style={styles.inputWrapper}>
-                      <TextInput
-                        placeholder="Enter your email"
-                        style={styles.input}
-                        placeholderTextColor="#aaa"
-                        onChangeText={handleChange("email")}
-                        onBlur={handleBlur("email")}
-                        value={values.email}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-                    </View>
-                    {errors.email && touched.email && (
-                      <Text style={styles.errorText}>{errors.email}</Text>
-                    )}
-
-                    <Text style={styles.label}>
-                      Password <Text style={styles.asterisk}>*</Text>
-                    </Text>
-                    <View style={styles.inputWrapper}>
-                      <TextInput
-                        placeholder="Enter your password"
-                        style={styles.input}
-                        placeholderTextColor="#aaa"
-                        secureTextEntry={!showPassword}
-                        onChangeText={handleChange("password")}
-                        onBlur={handleBlur("password")}
-                        value={values.password}
-                      />
-                      <TouchableOpacity
-                        onPress={() => setShowPassword(!showPassword)}
-                      >
-                        <Icon
-                          name={showPassword ? "visibility" : "visibility-off"}
-                          size={20}
-                          color="#000"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    {errors.password && touched.password && (
-                      <Text style={styles.errorText}>{errors.password}</Text>
-                    )}
-                  </View>
-
-                  {localUserType === "eventUser" && (
-                    <View style={styles.dropdownContainer}>
+              <Formik
+                innerRef={formikRef}
+                initialValues={{
+                  email: "",
+                  password: "",
+                  eventPartner: "",
+                }}
+                validationSchema={loginValidationSchema}
+                onSubmit={handleLogin}
+              >
+                {({
+                  handleChange,
+                  handleBlur,
+                  handleSubmit,
+                  values,
+                  errors,
+                  touched,
+                  isSubmitting,
+                  setFieldValue,
+                }) => (
+                  <View style={styles.formikContainer}>
+                    <View style={styles.inputContainer}>
                       <Text style={styles.label}>
-                        Select Event Partner <Text style={styles.asterisk}>*</Text>
+                        User name/Email ID <Text style={styles.asterisk}>*</Text>
                       </Text>
-                      <DropDownPicker
-                        open={eventPartnersOpen}
-                        value={values.eventPartner}
-                        items={eventPartners}
-                        setOpen={setEventPartnersOpen}
-                        setValue={(cb) => {
-                          const val = cb(values.eventPartner);
-                          setFieldValue("eventPartner", val);
-                        }}
-                        placeholder="Select Event Partner"
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownList}
-                        listMode="SCROLLVIEW"
-                        zIndex={3000}
-                        zIndexInverse={1000}
-                      />
-                      {errors.eventPartner && touched.eventPartner && (
-                        <Text style={styles.errorText}>{errors.eventPartner}</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          placeholder="Enter your email"
+                          style={styles.input}
+                          placeholderTextColor="#aaa"
+                          onChangeText={handleChange("email")}
+                          onBlur={handleBlur("email")}
+                          value={values.email}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+                      </View>
+                      {errors.email && touched.email && (
+                        <Text style={styles.errorText}>{errors.email}</Text>
+                      )}
+
+                      <Text style={styles.label}>
+                        Password <Text style={styles.asterisk}>*</Text>
+                      </Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          placeholder="Enter your password"
+                          style={styles.input}
+                          placeholderTextColor="#aaa"
+                          secureTextEntry={!showPassword}
+                          onChangeText={handleChange("password")}
+                          onBlur={handleBlur("password")}
+                          value={values.password}
+                        />
+                        <TouchableOpacity
+                          onPress={() => setShowPassword(!showPassword)}
+                        >
+                          <Icon
+                            name={showPassword ? "visibility" : "visibility-off"}
+                            size={20}
+                            color="#000"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      {errors.password && touched.password && (
+                        <Text style={styles.errorText}>{errors.password}</Text>
                       )}
                     </View>
-                  )}
 
-                  {serverError ? (
-                    <Text style={styles.serverErrorText}>{serverError}</Text>
-                  ) : null}
-
-                  <TouchableOpacity
-                    style={styles.loginButton}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting || loading}
-                  >
-                    {isSubmitting || loading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.loginButtonText}>Login</Text>
+                    {localUserType === "eventUser" && (
+                      <View style={styles.dropdownContainer}>
+                        <Text style={styles.label}>
+                          Select Event Partner <Text style={styles.asterisk}>*</Text>
+                        </Text>
+                        <TouchableOpacity 
+                          style={styles.dropdownSelector}
+                          onPress={() => setShowPartnerModal(true)}
+                        >
+                          <View style={styles.dropdownDisplay}>
+                            <Icon name="business" size={20} color="#666" style={styles.dropdownIcon} />
+                            <Text style={[
+                              styles.dropdownText, 
+                              !values.eventPartner && styles.dropdownPlaceholder
+                            ]}>
+                              {values.eventPartner 
+                                ? eventPartners.find(p => p.value === values.eventPartner)?.label || "Select Event Partner"
+                                : "Select Event Partner"}
+                            </Text>
+                            <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                          </View>
+                        </TouchableOpacity>
+                        
+                        {errors.eventPartner && touched.eventPartner && (
+                          <Text style={styles.errorText}>{errors.eventPartner}</Text>
+                        )}
+                        
+                        {/* Event Partner Selection Modal */}
+                        <Modal visible={showPartnerModal} transparent animationType="fade">
+                          <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                              <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Select Event Partner</Text>
+                                <TouchableOpacity
+                                  onPress={() => setShowPartnerModal(false)}
+                                  style={styles.modalCloseButton}
+                                >
+                                  <Icon name="close" size={24} color="#666" />
+                                </TouchableOpacity>
+                              </View>
+                              
+                              <ScrollView style={styles.modalScrollView}>
+                                {eventPartners.map((partner, index) => (
+                                  <React.Fragment key={partner.value}>
+                                    <TouchableOpacity
+                                      style={[
+                                        styles.partnerOption,
+                                        values.eventPartner === partner.value && styles.partnerOptionSelected
+                                      ]}
+                                      onPress={() => {
+                                        setFieldValue("eventPartner", partner.value);
+                                        setShowPartnerModal(false);
+                                      }}
+                                    >
+                                      <Text style={[
+                                        styles.partnerOptionText,
+                                        values.eventPartner === partner.value && styles.partnerOptionTextSelected
+                                      ]}>
+                                        {partner.label}
+                                      </Text>
+                                      {values.eventPartner === partner.value && (
+                                        <Icon name="check" size={20} color="#154360" />
+                                      )}
+                                    </TouchableOpacity>
+                                    {index < eventPartners.length - 1 && (
+                                      <View style={styles.partnerSeparator} />
+                                    )}
+                                  </React.Fragment>
+                                ))}
+                              </ScrollView>
+                            </View>
+                          </View>
+                        </Modal>
+                      </View>
                     )}
-                  </TouchableOpacity>
-                </View>
-              )}
-            </Formik>
+
+                    {serverError ? (
+                      <Text style={styles.serverErrorText}>{serverError}</Text>
+                    ) : null}
+
+                    <TouchableOpacity
+                      style={styles.loginButton}
+                      onPress={handleSubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.loginButtonText}>Login</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Formik>
+            </ScrollView>
           </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+        </TouchableWithoutFeedback>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -302,22 +350,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#1A5276",
   },
-  scrollContainer: {
-    flexGrow: 1,
-  },
   topBackground: {
     height: 250,
     justifyContent: "center",
     alignItems: "center",
   },
   logoContainer: {
-    width: 300,
-    height: 200,
+    width: 150,
   },
   logo: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
+  },
+  formContainerWrapper: {
+    flex: 1,
+    marginTop: -50,
   },
   formContainer: {
     flex: 1,
@@ -326,9 +374,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
     paddingTop: 20,
-    marginTop: -30,
   },
-  // [Rest of the styles remain exactly the same]
   welcomeText: {
     fontSize: 28,
     fontFamily: "Poppins-Bold",
@@ -361,6 +407,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#154360",
     fontFamily: "Poppins",
+  },
+  scrollableContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 20,
   },
   formikContainer: {
     marginTop: 10,
@@ -400,12 +452,30 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     zIndex: 2000,
   },
-  dropdown: {
+  dropdownSelector: {
+    borderWidth: 1,
     borderColor: "#B3B6B7",
     borderRadius: 10,
+    backgroundColor: "#fff",
+    marginBottom: 10,
   },
-  dropdownList: {
-    borderColor: "#B3B6B7",
+  dropdownDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+  },
+  dropdownIcon: {
+    marginRight: 10,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: "Poppins",
+    color: "#000",
+  },
+  dropdownPlaceholder: {
+    color: "#aaa",
   },
   errorText: {
     color: "red",
@@ -426,10 +496,72 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 10,
+    width: "60%",
+    alignSelf: "center",
   },
   loginButtonText: {
     color: "#fff",
     fontSize: 18,
     fontFamily: "Poppins-Bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "85%",
+    maxHeight: "70%",
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E4E7EB",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-Bold",
+    color: "#154360",
+  },
+  modalCloseButton: {
+    padding: 5,
+  },
+  modalScrollView: {
+    maxHeight: 300,
+  },
+  partnerOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+  },
+  partnerOptionSelected: {
+    backgroundColor: "rgba(21, 67, 96, 0.1)",
+  },
+  partnerOptionText: {
+    fontSize: 16,
+    fontFamily: "Poppins",
+    color: "#333",
+  },
+  partnerOptionTextSelected: {
+    color: "#154360",
+    fontFamily: "Poppins-Bold",
+  },
+  partnerSeparator: {
+    height: 1,
+    backgroundColor: "#E4E7EB",
+    marginHorizontal: 15,
   },
 });

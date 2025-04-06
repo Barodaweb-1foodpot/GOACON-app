@@ -44,7 +44,7 @@ export default function MainNavigator() {
 
     const splashTimeout = setTimeout(() => {
       setShowSplash(false);
-    }, 4000);
+    }, 8000);
 
     return () => clearTimeout(splashTimeout);
   }, []);

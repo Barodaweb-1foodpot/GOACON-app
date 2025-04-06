@@ -205,20 +205,24 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: height * 0.25,
   },
+  // Updated text container styling from Code 1
   textContainer: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 60 : 40,
+    bottom: Platform.OS === "ios" ? 80 : 60,
     alignItems: "center",
-    paddingHorizontal: 10, 
+    paddingHorizontal: 20,
+    width: "100%",
   },
+  // Updated app name text styling from Code 1
   appNameText: {
-    fontSize: 30,
+    fontSize: 32,
     color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     letterSpacing: 2,
-    paddingBottom: 5, 
+    paddingBottom: 5,
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
+    textAlign: "center",
   },
 });
