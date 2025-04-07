@@ -30,7 +30,7 @@ const STAR_COLORS = [
   "rgba(255, 223, 186, 0.8)",
 ];
 
-export default function SplashScreen() {
+export default function SplashScreen({ onAnimationComplete }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
@@ -56,7 +56,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Main content animations
-    Animated.sequence([
+    const mainAnimation = Animated.sequence([
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -82,7 +82,14 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
-    ]).start();
+    ]);
+
+    mainAnimation.start(() => {
+      // Call the callback when animation finishes, if provided
+      if (onAnimationComplete) {
+        onAnimationComplete();
+      }
+    });
 
     stars.forEach((star) => {
       const createTwinkle = () => {
@@ -102,7 +109,7 @@ export default function SplashScreen() {
 
       setTimeout(createTwinkle, star.delay);
     });
-  }, []);
+  }, [onAnimationComplete]);
 
   return (
     <View style={styles.container}>
