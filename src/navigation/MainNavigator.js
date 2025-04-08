@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-/* eslint-disable no-undef */
-/* eslint-disable react/jsx-no-undef */
 import React, { useEffect, useState, useCallback } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import * as Font from "expo-font";

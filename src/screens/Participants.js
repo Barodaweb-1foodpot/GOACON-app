@@ -1,7 +1,3 @@
-/* eslint-disable react/jsx-no-duplicate-props */
-/* eslint-disable react/display-name */
-/* eslint-disable react/prop-types */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
@@ -17,6 +13,7 @@ import {
   Platform,
   Alert,
   RefreshControl,
+  Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
@@ -28,6 +25,9 @@ import DropDownPicker from "react-native-dropdown-picker";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient"; // Import LinearGradient
 import { markParticipantEntered } from "../api/eventApi";
+
+// Get screen dimensions for dynamic positioning
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function Participants() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -61,7 +61,7 @@ export default function Participants() {
   const [pageSizeOpen, setPageSizeOpen] = useState(false);
   const pageSizeOptions = [
     { label: "10 per page", value: 10 },
-    // { label: "20 per page", value: 20 },
+    { label: "20 per page", value: 20 },
     { label: "50 per page", value: 50 },
     { label: "All", value: "total" },
   ];
@@ -72,12 +72,8 @@ export default function Participants() {
   // Show/hide filters
   const [filtersVisible, setFiltersVisible] = useState(false);
 
-  // For the stacked zIndex with multiple DropDownPickers
-  const [dropdownZIndex, setDropdownZIndex] = useState({
-    event: 3000,
-    entry: 2000,
-    pageSize: 1000,
-  });
+  // For dropdown management
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   // Memoize partnerId
   const partnerId = useMemo(() => {
@@ -163,15 +159,16 @@ export default function Participants() {
     }
 
     try {
-      // Use totalCount if pageSize is 'total' and totalCount is known, otherwise a large fallback
-      const currentPageSize =
-        pageSize === "total"
-          ? totalCount > 0
-            ? totalCount
-            : 10000
-          : pageSize;
-
+      // Calculate proper page size - always use a fixed number
+      const currentPageSize = pageSize === "total"
+        ? (totalCount > 0 ? totalCount : 10000)
+        : Number(pageSize);
+        
+      // Use consistent offset-based pagination with fixed page size
       const skipValue = (page - 1) * currentPageSize;
+      
+      console.log(`Fetching page ${page} with fixed skip=${skipValue}, pageSize=${currentPageSize}`);
+
       const payload = {
         skip: skipValue,
         per_page: currentPageSize,
@@ -189,25 +186,28 @@ export default function Participants() {
 
       const response = await fetchParticipants(payload);
       const fetchedData = response.data || [];
+      
+      // Log the response details for debugging
+      console.log(`Page ${page}: Requested ${currentPageSize}, Got ${fetchedData.length}, Total ${response.totalCount}`);
 
+      // For first page, just set the data
       if (page === 1) {
         setParticipants(fetchedData);
       } else {
+        // For subsequent pages, append ensuring no duplicates
         setParticipants((prev) => {
-          // Filter out duplicates if any
           const existingIds = new Set(prev.map((p) => p._id));
           const newData = fetchedData.filter((p) => !existingIds.has(p._id));
           return [...prev, ...newData];
         });
       }
 
-      // If we've reached or exceeded the total, no more data:
-      const loadedSoFar = skipValue + fetchedData.length;
-      if (loadedSoFar >= response.totalCount) {
-        setNoMoreData(true);
-      } else {
-        setNoMoreData(false);
-      }
+      // Check if we've reached the end
+      const noMore = fetchedData.length < currentPageSize || 
+                     skipValue + fetchedData.length >= response.totalCount;
+      
+      setNoMoreData(noMore);
+      
     } catch (error) {
       console.error("Error fetching participants:", error);
       Alert.alert("Error", "Failed to fetch participants.");
@@ -223,24 +223,37 @@ export default function Participants() {
   };
 
   const loadNextPage = useCallback(() => {
-    if (loading || isFetchingMore || noMoreData || pageSize === "total" || refreshing) return;
+    // Prevent loading if already loading, refreshing, no more data, or total page size
+    if (loading || isFetchingMore || noMoreData || pageSize === "total" || refreshing) {
+      console.log(`Skipping loadNextPage - loading:${loading}, fetching:${isFetchingMore}, noMore:${noMoreData}, pageSize:${pageSize}`);
+      return;
+    }
+    
+    // Simply increment the page number for consistent pagination
     const nextPage = currentPage + 1;
+    console.log(`Loading next page ${nextPage} with pageSize ${pageSize}`);
     setCurrentPage(nextPage);
     fetchParticipantsList(nextPage);
   }, [loading, isFetchingMore, noMoreData, pageSize, refreshing, currentPage]);
 
   const onRefresh = useCallback(async () => {
-    if (!eventValue || refreshing) return;
+    if (!eventValue || refreshing) {
+      console.log("Skipping refresh - no event or already refreshing");
+      return;
+    }
 
+    console.log("Starting refresh...");
     setRefreshing(true);
     setCurrentPage(1);
     setNoMoreData(false);
 
     try {
       await Promise.all([fetchCounts(), fetchParticipantsList(1)]);
+      console.log("Refresh completed successfully");
     } catch (error) {
       console.error("Error refreshing data:", error);
       Alert.alert("Error", "Failed to refresh data.");
+    } finally {
       setRefreshing(false);
     }
   }, [eventValue, refreshing]);
@@ -256,29 +269,36 @@ export default function Participants() {
     Keyboard.dismiss();
   };
 
-  // Handle zIndex toggling for each dropdown
-  const handleEventOpen = (open) => {
-    setEventOpen(open);
-    if (open) {
-      setEntryOpen(false);
-      setPageSizeOpen(false);
-      setDropdownZIndex({ event: 5000, entry: 3000, pageSize: 2000 });
-    }
-  };
-  const handleEntryOpen = (open) => {
-    setEntryOpen(open);
-    if (open) {
-      setEventOpen(false);
-      setPageSizeOpen(false);
-      setDropdownZIndex({ event: 3000, entry: 5000, pageSize: 2000 });
-    }
-  };
-  const handlePageSizeOpen = (open) => {
-    setPageSizeOpen(open);
-    if (open) {
-      setEventOpen(false);
-      setEntryOpen(false);
-      setDropdownZIndex({ event: 3000, entry: 2000, pageSize: 5000 });
+  // Improved dropdown management - one function to handle all dropdowns
+  const handleDropdownOpen = (dropdown) => (open) => {
+    // Close all other dropdowns
+    if (dropdown === 'event') {
+      setEventOpen(open);
+      if (open) {
+        setEntryOpen(false);
+        setPageSizeOpen(false);
+        setActiveDropdown('event');
+      } else if (activeDropdown === 'event') {
+        setActiveDropdown(null);
+      }
+    } else if (dropdown === 'entry') {
+      setEntryOpen(open);
+      if (open) {
+        setEventOpen(false);
+        setPageSizeOpen(false);
+        setActiveDropdown('entry');
+      } else if (activeDropdown === 'entry') {
+        setActiveDropdown(null);
+      }
+    } else if (dropdown === 'pageSize') {
+      setPageSizeOpen(open);
+      if (open) {
+        setEventOpen(false);
+        setEntryOpen(false);
+        setActiveDropdown('pageSize');
+      } else if (activeDropdown === 'pageSize') {
+        setActiveDropdown(null);
+      }
     }
   };
 
@@ -375,6 +395,7 @@ export default function Participants() {
           <TouchableOpacity
             style={styles.nextButton}
             onPress={loadNextPage}
+            disabled={isFetchingMore}
           >
             <Text style={styles.nextButtonText}>View More</Text>
           </TouchableOpacity>
@@ -478,10 +499,8 @@ export default function Participants() {
             {filtersVisible ? (
               <>
                 <View style={styles.filtersContainer}>
-                  {/* All the DropDownPickers here */}
                   <View style={styles.dropdownsWrapper}>
-                    <View style={{ zIndex: dropdownZIndex.event }}>
-                          <DropDownPicker
+                    <DropDownPicker
                       open={eventOpen}
                       value={eventValue}
                       items={events}
@@ -496,14 +515,14 @@ export default function Participants() {
                         styles.dropDownContainerStyle, 
                         { zIndex: eventOpen ? 9999 : 1 }
                       ]}
-                      itemSeparator={true}
+                      itemSeparator
                       itemSeparatorStyle={styles.itemSeparator}
                       zIndex={eventOpen ? 9999 : 1}
                       listMode="SCROLLVIEW"
                       scrollViewProps={{
                         nestedScrollEnabled: true,
                       }}
-                      maxHeight={SCREEN_HEIGHT * 0.3} // Limit dropdown height
+                      maxHeight={SCREEN_HEIGHT * 0.3} // Limit dropdown height to 30% of screen
                       ArrowDownIconComponent={() => (
                         <Icon name="keyboard-arrow-down" size={24} color="#666" />
                       )}
@@ -513,72 +532,72 @@ export default function Participants() {
                       accessible={true}
                       accessibilityLabel="Select Event"
                     />
-                    </View>
 
-                    <View style={{ marginTop: 10, zIndex: dropdownZIndex.entry }}>
+                    <View style={{ marginTop: 10 }}>
                       <DropDownPicker
                         open={entryOpen}
                         value={entryValue}
                         items={entryTypes}
-                        setOpen={handleEntryOpen}
+                        setOpen={handleDropdownOpen('entry')}
                         setValue={setEntryValue}
                         placeholder="Select Entry Type"
                         style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropDownContainerStyle}
+                        containerStyle={styles.dropdownContainer}
                         listItemContainerStyle={styles.listItemContainer}
+                        dropDownContainerStyle={[
+                          styles.dropDownContainerStyle, 
+                          { zIndex: entryOpen ? 9999 : 1 }
+                        ]}
                         itemSeparator
                         itemSeparatorStyle={styles.itemSeparator}
+                        zIndex={entryOpen ? 9999 : 1}
                         listMode="SCROLLVIEW"
+                        maxHeight={SCREEN_HEIGHT * 0.3} // Limit dropdown height to 30% of screen
                         scrollViewProps={{
                           nestedScrollEnabled: true,
                         }}
                         ArrowDownIconComponent={() => (
-                          <Icon
-                            name="keyboard-arrow-down"
-                            size={24}
-                            color="#666"
-                          />
+                          <Icon name="keyboard-arrow-down" size={24} color="#666" />
                         )}
                         ArrowUpIconComponent={() => (
-                          <Icon
-                            name="keyboard-arrow-up"
-                            size={24}
-                            color="#666"
-                          />
+                          <Icon name="keyboard-arrow-up" size={24} color="#666" />
                         )}
+                        accessible={true}
+                        accessibilityLabel="Select Entry Type"
                       />
                     </View>
 
-                    <View style={{ marginTop: 10, zIndex: dropdownZIndex.pageSize }}>
+                    <View style={{ marginTop: 10 }}>
                       <DropDownPicker
                         open={pageSizeOpen}
                         value={pageSize}
                         items={pageSizeOptions}
-                        setOpen={handlePageSizeOpen}
+                        setOpen={handleDropdownOpen('pageSize')}
                         setValue={setPageSize}
                         placeholder="Select Page Size"
                         style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropDownContainerStyle}
+                        containerStyle={styles.dropdownContainer}
                         listItemContainerStyle={styles.listItemContainer}
-                        itemSeparator
-                        itemSeparatorStyle={styles.itemSeparator}
+                        dropDownContainerStyle={[
+                          styles.dropDownContainerStyle, 
+                          { zIndex: pageSizeOpen ? 9999 : 1 }
+                        ]}
                         listMode="SCROLLVIEW"
+                        maxHeight={SCREEN_HEIGHT * 0.25} // Limit dropdown height to 25% of screen
                         scrollViewProps={{
                           nestedScrollEnabled: true,
+                          persistentScrollbar: true,
                         }}
+                        itemSeparator
+                        itemSeparatorStyle={styles.itemSeparator}
+                        zIndex={pageSizeOpen ? 9999 : 1}
+                        accessible={true}
+                        accessibilityLabel="Select Page Size"
                         ArrowDownIconComponent={() => (
-                          <Icon
-                            name="keyboard-arrow-down"
-                            size={24}
-                            color="#666"
-                          />
+                          <Icon name="keyboard-arrow-down" size={24} color="#666" />
                         )}
                         ArrowUpIconComponent={() => (
-                          <Icon
-                            name="keyboard-arrow-up"
-                            size={24}
-                            color="#666"
-                          />
+                          <Icon name="keyboard-arrow-up" size={24} color="#666" />
                         )}
                       />
                     </View>
@@ -618,6 +637,14 @@ export default function Participants() {
                     returnKeyType="search"
                     placeholderTextColor="#999"
                   />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchQuery("")}
+                      style={styles.clearButton}
+                    >
+                      <Icon name="close" size={20} color="#666" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </TouchableWithoutFeedback>
             )}
@@ -656,7 +683,7 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
   }, []);
 
-  const isScanned = participant.registrationScan;
+  const isScanned = Boolean(participant.registrationScan);
 
   return (
     <TouchableOpacity
@@ -778,12 +805,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    zIndex: 100,
   },
   filtersContainer: {
     marginBottom: 10,
   },
   dropdownsWrapper: {
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 12,
   },
   dropdown: {
     borderColor: "#E0E0E0",
@@ -793,17 +822,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 15,
   },
+  dropdownContainer: {
+    height: 45,
+    marginBottom: 10,
+  },
   dropDownContainerStyle: {
     borderColor: "#E0E0E0",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderRadius: 12,
-    // Remove absolute to avoid clipping:
-    // position: 'absolute', // <-- removed
-    backgroundColor: "#FFFFFF",
-    elevation: 5,
+    position: 'absolute',
+    width: '100%', 
+    elevation: 9,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
   },
   listItemContainer: {
@@ -834,6 +867,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     fontSize: 15,
     color: "#2C3E50",
+  },
+  clearButton: {
+    padding: 5,
   },
   countsContainer: {
     flexDirection: "row",

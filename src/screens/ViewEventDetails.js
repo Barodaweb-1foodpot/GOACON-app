@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -305,6 +304,16 @@ export default function ViewEventDetails() {
                     <Text style={styles.sessionName}>
                       {session.sessionName}
                     </Text>
+                    {/* <View style={styles.sessionTimeContainer}>
+                      <Icon name="event" size={16} color="#FFFFFF" style={styles.sessionIcon} />
+                      <Text style={styles.sessionTime}>
+                        {new Date(session.startTime).toLocaleDateString()} {" "}
+                        {new Date(session.startTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </View> */}
                   </View>
                 </View>
               ))
@@ -454,7 +463,7 @@ const styles = StyleSheet.create({
   },
   sessionCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     padding: 15,
     borderRadius: 20,
@@ -473,7 +482,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#FFFFFF",
     fontFamily: "Poppins-Medium",
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  sessionTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sessionIcon: {
+    marginRight: 6,
+    opacity: 0.8,
+  },
+  sessionTime: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Regular",
+    opacity: 0.8,
   },
   sessionDuration: {
     fontSize: 14,

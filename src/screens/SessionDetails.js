@@ -1,7 +1,3 @@
-/* eslint-disable react/jsx-no-duplicate-props */
-/* eslint-disable react/display-name */
-/* eslint-disable react/prop-types */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
@@ -121,7 +117,7 @@ export default function SessionDetails() {
       const eventsList = await fetchEventsByPartner(partnerId);
       console.log(eventsList)
       const formattedEvents = [
-        { label: "All Events", value: null },
+        { label: "Select Events", value: null },
         ...eventsList.data.map((event) => ({
           label: event.exhibitionEventName,
           value: event._id,
