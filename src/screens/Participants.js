@@ -17,17 +17,13 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useAuthContext } from "../context/AuthContext";
-import {
-  fetchEventsByPartner,
-  fetchParticipants,
-} from "../api/participantApi";
+import { fetchEventsByPartner, fetchParticipants } from "../api/participantApi";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient"; // Import LinearGradient
+import { LinearGradient } from "expo-linear-gradient";
 import { markParticipantEntered } from "../api/eventApi";
 
-// Get screen dimensions for dynamic positioning
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function Participants() {
   const { user, userType, selectedEventPartner } = useAuthContext();
@@ -39,7 +35,7 @@ export default function Participants() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Count states
+  // Count states for dashboard
   const [totalCount, setTotalCount] = useState(0);
   const [scannedCount, setScannedCount] = useState(0);
   const [notScannedCount, setNotScannedCount] = useState(0);
@@ -69,32 +65,29 @@ export default function Participants() {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [noMoreData, setNoMoreData] = useState(false);
 
-  // Show/hide filters
   const [filtersVisible, setFiltersVisible] = useState(false);
 
-  // For dropdown management
   const [activeDropdown, setActiveDropdown] = useState(null);
 
-  // Memoize partnerId
+  // Memoize partnerId based on user type
   const partnerId = useMemo(() => {
     return userType === "eventUser" ? selectedEventPartner : user;
   }, [userType, selectedEventPartner, user]);
 
-  // Fetch the list of events once
   useEffect(() => {
+    console.log("Participants component mounted – fetching events...");
     fetchEvents();
   }, []);
 
-  // Whenever eventValue / filters change, reset pagination to page 1
+  // Reset pagination and fetch data when filters (eventValue, entryValue, searchQuery, pageSize) change
   useEffect(() => {
     setCurrentPage(1);
     setNoMoreData(false);
 
     if (eventValue) {
       fetchCounts();
-      fetchParticipantsList(1); // Load the first page
+      fetchParticipantsList(1);
     } else {
-      // Clear states if no event selected
       setTotalCount(0);
       setScannedCount(0);
       setNotScannedCount(0);
@@ -103,9 +96,11 @@ export default function Participants() {
     }
   }, [eventValue, entryValue, searchQuery, pageSize]);
 
+  // Fetch events for the given partner and format for the dropdown menu
   const fetchEvents = async () => {
     try {
       const eventsList = await fetchEventsByPartner(partnerId);
+      console.log("Fetched events:", eventsList.data);
       const formattedEvents = [
         { label: "Select Events", value: null },
         ...eventsList.data.map((event) => ({
@@ -120,6 +115,7 @@ export default function Participants() {
     }
   };
 
+  // Fetch the counts for total, scanned, and not scanned participants
   const fetchCounts = async () => {
     try {
       const basePayload = {
@@ -136,38 +132,45 @@ export default function Participants() {
         basePayload.isScanned = entryValue;
       }
 
+      console.log("Fetching counts with payload:", basePayload);
       const totalResponse = await fetchParticipants(basePayload);
       setTotalCount(totalResponse.totalCount);
       setScannedCount(totalResponse.scannedCount);
       setNotScannedCount(totalResponse.notScannedCount);
+      // console.log("Counts fetched:", totalResponse);
     } catch (error) {
       console.error("Error fetching counts:", error);
       Alert.alert("Error", "Failed to fetch counts.");
     }
   };
 
+  // Fetch participants list using offset-based pagination
   const fetchParticipantsList = async (page = 1) => {
-    // Avoid fetching if no event selected or if already loading
-    if (!eventValue || (loading && page === 1) || (isFetchingMore && page > 1)) return;
+    if (!eventValue || (loading && page === 1) || (isFetchingMore && page > 1))
+      return;
 
     if (page === 1) {
+      console.log("Starting participant list fetch for page 1");
       setLoading(true);
       setNoMoreData(false);
       setParticipants([]);
     } else {
+      console.log(`Fetching more participants for page ${page}`);
       setIsFetchingMore(true);
     }
 
     try {
-      // Calculate proper page size - always use a fixed number
-      const currentPageSize = pageSize === "total"
-        ? (totalCount > 0 ? totalCount : 10000)
-        : Number(pageSize);
-        
-      // Use consistent offset-based pagination with fixed page size
+      // Calculate page size
+      const currentPageSize =
+        pageSize === "total"
+          ? totalCount > 0
+            ? totalCount
+            : 10000
+          : Number(pageSize);
       const skipValue = (page - 1) * currentPageSize;
-      
-      console.log(`Fetching page ${page} with fixed skip=${skipValue}, pageSize=${currentPageSize}`);
+      console.log(
+        `Fetching page ${page} with skip=${skipValue} and pageSize=${currentPageSize}`
+      );
 
       const payload = {
         skip: skipValue,
@@ -186,70 +189,74 @@ export default function Participants() {
 
       const response = await fetchParticipants(payload);
       const fetchedData = response.data || [];
-      
-      // Log the response details for debugging
-      console.log(`Page ${page}: Requested ${currentPageSize}, Got ${fetchedData.length}, Total ${response.totalCount}`);
+      console.log(
+        `Page ${page}: Received ${fetchedData.length} participants out of ${response.totalCount}`
+      );
 
-      // For first page, just set the data
       if (page === 1) {
         setParticipants(fetchedData);
       } else {
-        // For subsequent pages, append ensuring no duplicates
+        // Append new unique participants
         setParticipants((prev) => {
-          const existingIds = new Set(prev.map((p) => p._id));
-          const newData = fetchedData.filter((p) => !existingIds.has(p._id));
-          return [...prev, ...newData];
+          // const existingIds = new Set(prev.map((p) => p._id));
+          // const newData = fetchedData.filter((p) => !existingIds.has(p._id));
+          return [...prev, ...fetchedData];
         });
       }
 
-      // Check if we've reached the end
-      const noMore = fetchedData.length < currentPageSize || 
-                     skipValue + fetchedData.length >= response.totalCount;
-      
+      // Determine if more data is available
+      const noMore =
+        fetchedData.length < currentPageSize ||
+        skipValue + fetchedData.length >= response.totalCount;
       setNoMoreData(noMore);
-      
     } catch (error) {
       console.error("Error fetching participants:", error);
       Alert.alert("Error", "Failed to fetch participants.");
       setNoMoreData(true);
     } finally {
-      if (page === 1) {
-        setLoading(false);
-      } else {
-        setIsFetchingMore(false);
-      }
+      page === 1 ? setLoading(false) : setIsFetchingMore(false);
       setRefreshing(false);
     }
   };
 
+  // Load next page if available
   const loadNextPage = useCallback(() => {
-    // Prevent loading if already loading, refreshing, no more data, or total page size
-    if (loading || isFetchingMore || noMoreData || pageSize === "total" || refreshing) {
-      console.log(`Skipping loadNextPage - loading:${loading}, fetching:${isFetchingMore}, noMore:${noMoreData}, pageSize:${pageSize}`);
+    if (
+      loading ||
+      isFetchingMore ||
+      noMoreData ||
+      pageSize === "total" ||
+      refreshing
+    ) {
+      console.log("Skipping loadNextPage:", {
+        loading,
+        isFetchingMore,
+        noMoreData,
+        pageSize,
+      });
       return;
     }
-    
-    // Simply increment the page number for consistent pagination
+
     const nextPage = currentPage + 1;
-    console.log(`Loading next page ${nextPage} with pageSize ${pageSize}`);
+    console.log(`Loading next page: ${nextPage}`);
     setCurrentPage(nextPage);
     fetchParticipantsList(nextPage);
   }, [loading, isFetchingMore, noMoreData, pageSize, refreshing, currentPage]);
 
+  // Refresh handler for pull-to-refresh
   const onRefresh = useCallback(async () => {
     if (!eventValue || refreshing) {
-      console.log("Skipping refresh - no event or already refreshing");
+      console.log("Skipping refresh – no event selected or already refreshing");
       return;
     }
-
-    console.log("Starting refresh...");
+    console.log("Refreshing participant list...");
     setRefreshing(true);
     setCurrentPage(1);
     setNoMoreData(false);
 
     try {
       await Promise.all([fetchCounts(), fetchParticipantsList(1)]);
-      console.log("Refresh completed successfully");
+      console.log("Refresh completed");
     } catch (error) {
       console.error("Error refreshing data:", error);
       Alert.alert("Error", "Failed to refresh data.");
@@ -258,45 +265,46 @@ export default function Participants() {
     }
   }, [eventValue, refreshing]);
 
+  // Clear all filter values to reset the view
   const clearFilters = () => {
+    console.log("Clearing filters");
     setEventValue(null);
     setEntryValue(null);
     setSearchQuery("");
-    setPageSize(10); // or whatever default you want
+    setPageSize(10);
   };
 
+  // Dismiss the keyboard when tapping outside the input
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
 
-  // Improved dropdown management - one function to handle all dropdowns
   const handleDropdownOpen = (dropdown) => (open) => {
-    // Close all other dropdowns
-    if (dropdown === 'event') {
+    if (dropdown === "event") {
       setEventOpen(open);
       if (open) {
         setEntryOpen(false);
         setPageSizeOpen(false);
-        setActiveDropdown('event');
-      } else if (activeDropdown === 'event') {
+        setActiveDropdown("event");
+      } else if (activeDropdown === "event") {
         setActiveDropdown(null);
       }
-    } else if (dropdown === 'entry') {
+    } else if (dropdown === "entry") {
       setEntryOpen(open);
       if (open) {
         setEventOpen(false);
         setPageSizeOpen(false);
-        setActiveDropdown('entry');
-      } else if (activeDropdown === 'entry') {
+        setActiveDropdown("entry");
+      } else if (activeDropdown === "entry") {
         setActiveDropdown(null);
       }
-    } else if (dropdown === 'pageSize') {
+    } else if (dropdown === "pageSize") {
       setPageSizeOpen(open);
       if (open) {
         setEventOpen(false);
         setEntryOpen(false);
-        setActiveDropdown('pageSize');
-      } else if (activeDropdown === 'pageSize') {
+        setActiveDropdown("pageSize");
+      } else if (activeDropdown === "pageSize") {
         setActiveDropdown(null);
       }
     }
@@ -324,11 +332,13 @@ export default function Participants() {
           {
             text: "Scan",
             onPress: async () => {
+              console.log(
+                `Updating scan status for participant ${participantId}`
+              );
               try {
-                // Mark participant entered
+                // Mark participant as entered
                 await markParticipantEntered(participantId, eventValue);
-                
-                // Optimistic UI update
+                // Update UI immediately for better responsiveness
                 setParticipants((prev) =>
                   prev.map((p) =>
                     p._id === participantId
@@ -354,12 +364,14 @@ export default function Participants() {
     [eventValue, fetchCounts]
   );
 
+  // Format date strings for display
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
   };
 
+  // Memoized render function for participant card
   const renderItem = useCallback(
     ({ item }) => (
       <ParticipantCard
@@ -371,14 +383,16 @@ export default function Participants() {
     [handleScanStatusUpdate, navigation]
   );
 
+  // Unique key extractor for FlatList
   const keyExtractor = useCallback(
     (item, index) => (item?._id ? String(item._id) : `participant-${index}`),
     []
   );
 
+  // Render footer to support pagination
   const renderListFooter = useCallback(() => {
-    if (loading && currentPage === 1) return null; // we show the main loader in the empty component
-    if (pageSize === "total") return null; // no pagination needed if loading all
+    if (loading && currentPage === 1) return null;
+    if (pageSize === "total") return null; // No pagination if "All" is selected
 
     if (isFetchingMore) {
       return (
@@ -388,7 +402,7 @@ export default function Participants() {
       );
     }
 
-    // Show "View More" if there is potentially more data
+    // "View More" button if additional data might exist
     if (!noMoreData && participants.length > 0) {
       return (
         <View style={styles.footerContainer}>
@@ -403,7 +417,7 @@ export default function Participants() {
       );
     }
 
-    // If we've loaded data but no more data remains
+    // Inform the user when no more data is available
     if (noMoreData && participants.length > 0) {
       return (
         <View style={styles.footerContainer}>
@@ -423,8 +437,9 @@ export default function Participants() {
     loadNextPage,
   ]);
 
+  // Render component for an empty list scenario
   const renderEmptyComponent = () => {
-    // Show main loader on first load
+    // Loader for the initial data fetch
     if (loading && currentPage === 1 && !refreshing) {
       return (
         <View style={[styles.emptyContainer, styles.loadingContainer]}>
@@ -434,7 +449,7 @@ export default function Participants() {
       );
     }
 
-    // If no event is selected
+    // Prompt to select filters if no event is selected
     if (!eventValue) {
       return (
         <View style={styles.initialPromptContainer}>
@@ -446,7 +461,7 @@ export default function Participants() {
       );
     }
 
-    // If an event is selected, not loading, but no participants
+    // Display message when no participants match the filters
     if (!loading && participants.length === 0) {
       return (
         <View style={styles.emptyContainer}>
@@ -469,13 +484,21 @@ export default function Participants() {
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
 
       <View style={styles.container}>
+        {/* Header with back and filter buttons */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              console.log("Navigating back from Participants screen");
+              navigation.goBack();
+            }}
             accessible={true}
             accessibilityLabel="Go back"
           >
@@ -486,7 +509,10 @@ export default function Participants() {
           </Text>
           <TouchableOpacity
             style={styles.filterButton}
-            onPress={() => setFiltersVisible(!filtersVisible)}
+            onPress={() => {
+              console.log("Toggling filters visibility");
+              setFiltersVisible(!filtersVisible);
+            }}
             accessible={true}
             accessibilityLabel="Toggle filters"
           >
@@ -494,17 +520,19 @@ export default function Participants() {
           </TouchableOpacity>
         </View>
 
+        {/* Content Container */}
         <View style={styles.content}>
           <View style={styles.fixedContent}>
             {filtersVisible ? (
               <>
                 <View style={styles.filtersContainer}>
                   <View style={styles.dropdownsWrapper}>
+                    {/* Event selection dropdown */}
                     <DropDownPicker
                       open={eventOpen}
                       value={eventValue}
                       items={events}
-                      setOpen={handleDropdownOpen('event')}
+                      setOpen={handleDropdownOpen("event")}
                       setValue={setEventValue}
                       setItems={setEvents}
                       placeholder="Select Event"
@@ -512,8 +540,8 @@ export default function Participants() {
                       containerStyle={styles.dropdownContainer}
                       listItemContainerStyle={styles.listItemContainer}
                       dropDownContainerStyle={[
-                        styles.dropDownContainerStyle, 
-                        { zIndex: eventOpen ? 9999 : 1 }
+                        styles.dropDownContainerStyle,
+                        { zIndex: eventOpen ? 9999 : 1 },
                       ]}
                       itemSeparator
                       itemSeparatorStyle={styles.itemSeparator}
@@ -522,9 +550,13 @@ export default function Participants() {
                       scrollViewProps={{
                         nestedScrollEnabled: true,
                       }}
-                      maxHeight={SCREEN_HEIGHT * 0.3} // Limit dropdown height to 30% of screen
+                      maxHeight={SCREEN_HEIGHT * 0.3}
                       ArrowDownIconComponent={() => (
-                        <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                        <Icon
+                          name="keyboard-arrow-down"
+                          size={24}
+                          color="#666"
+                        />
                       )}
                       ArrowUpIconComponent={() => (
                         <Icon name="keyboard-arrow-up" size={24} color="#666" />
@@ -534,33 +566,42 @@ export default function Participants() {
                     />
 
                     <View style={{ marginTop: 10 }}>
+                      {/* Entry type dropdown */}
                       <DropDownPicker
                         open={entryOpen}
                         value={entryValue}
                         items={entryTypes}
-                        setOpen={handleDropdownOpen('entry')}
+                        setOpen={handleDropdownOpen("entry")}
                         setValue={setEntryValue}
                         placeholder="Select Entry Type"
                         style={styles.dropdown}
                         containerStyle={styles.dropdownContainer}
                         listItemContainerStyle={styles.listItemContainer}
                         dropDownContainerStyle={[
-                          styles.dropDownContainerStyle, 
-                          { zIndex: entryOpen ? 9999 : 1 }
+                          styles.dropDownContainerStyle,
+                          { zIndex: entryOpen ? 9999 : 1 },
                         ]}
                         itemSeparator
                         itemSeparatorStyle={styles.itemSeparator}
                         zIndex={entryOpen ? 9999 : 1}
                         listMode="SCROLLVIEW"
-                        maxHeight={SCREEN_HEIGHT * 0.3} // Limit dropdown height to 30% of screen
+                        maxHeight={SCREEN_HEIGHT * 0.3}
                         scrollViewProps={{
                           nestedScrollEnabled: true,
                         }}
                         ArrowDownIconComponent={() => (
-                          <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                          <Icon
+                            name="keyboard-arrow-down"
+                            size={24}
+                            color="#666"
+                          />
                         )}
                         ArrowUpIconComponent={() => (
-                          <Icon name="keyboard-arrow-up" size={24} color="#666" />
+                          <Icon
+                            name="keyboard-arrow-up"
+                            size={24}
+                            color="#666"
+                          />
                         )}
                         accessible={true}
                         accessibilityLabel="Select Entry Type"
@@ -568,22 +609,23 @@ export default function Participants() {
                     </View>
 
                     <View style={{ marginTop: 10 }}>
+                      {/* Page size dropdown */}
                       <DropDownPicker
                         open={pageSizeOpen}
                         value={pageSize}
                         items={pageSizeOptions}
-                        setOpen={handleDropdownOpen('pageSize')}
+                        setOpen={handleDropdownOpen("pageSize")}
                         setValue={setPageSize}
                         placeholder="Select Page Size"
                         style={styles.dropdown}
                         containerStyle={styles.dropdownContainer}
                         listItemContainerStyle={styles.listItemContainer}
                         dropDownContainerStyle={[
-                          styles.dropDownContainerStyle, 
-                          { zIndex: pageSizeOpen ? 9999 : 1 }
+                          styles.dropDownContainerStyle,
+                          { zIndex: pageSizeOpen ? 9999 : 1 },
                         ]}
                         listMode="SCROLLVIEW"
-                        maxHeight={SCREEN_HEIGHT * 0.25} // Limit dropdown height to 25% of screen
+                        maxHeight={SCREEN_HEIGHT * 0.25}
                         scrollViewProps={{
                           nestedScrollEnabled: true,
                           persistentScrollbar: true,
@@ -594,22 +636,44 @@ export default function Participants() {
                         accessible={true}
                         accessibilityLabel="Select Page Size"
                         ArrowDownIconComponent={() => (
-                          <Icon name="keyboard-arrow-down" size={24} color="#666" />
+                          <Icon
+                            name="keyboard-arrow-down"
+                            size={24}
+                            color="#666"
+                          />
                         )}
                         ArrowUpIconComponent={() => (
-                          <Icon name="keyboard-arrow-up" size={24} color="#666" />
+                          <Icon
+                            name="keyboard-arrow-up"
+                            size={24}
+                            color="#666"
+                          />
                         )}
                       />
                     </View>
                   </View>
 
+                  {/* Display counts for Total, Scanned, and Not Scanned */}
                   <View style={styles.countsContainer}>
-                    <CountCard title="Total" count={totalCount} color="#1A5276" />
-                    <CountCard title="Scanned" count={scannedCount} color="#4CAF50" />
-                    <CountCard title="Not Scan" count={notScannedCount} color="#FFA000" />
+                    <CountCard
+                      title="Total"
+                      count={totalCount}
+                      color="#1A5276"
+                    />
+                    <CountCard
+                      title="Scanned"
+                      count={scannedCount}
+                      color="#4CAF50"
+                    />
+                    <CountCard
+                      title="Not Scan"
+                      count={notScannedCount}
+                      color="#FFA000"
+                    />
                   </View>
                 </View>
 
+                {/* Clear filters button */}
                 <View style={styles.clearFiltersContainer}>
                   <TouchableOpacity
                     style={styles.clearFiltersButton}
@@ -621,6 +685,7 @@ export default function Participants() {
                 </View>
               </>
             ) : (
+              // When filters are hidden, show the search bar
               <TouchableWithoutFeedback onPress={dismissKeyboard}>
                 <View style={styles.searchContainer}>
                   <Icon
@@ -650,7 +715,7 @@ export default function Participants() {
             )}
           </View>
 
-          {/* Participants List */}
+          {/* Participants List with pull-to-refresh and pagination */}
           <FlatList
             style={styles.listWrapper}
             contentContainerStyle={styles.listContentContainer}
@@ -675,8 +740,8 @@ export default function Participants() {
   );
 }
 
-// ParticipantCard
 const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
+  // Format date for display on scanned participants
   const formatDate = useCallback((dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -687,10 +752,7 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
 
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        isScanned && styles.scannedCard,
-      ]}
+      style={[styles.card, isScanned && styles.scannedCard]}
       onPress={onPress}
       disabled={isScanned}
       accessible={true}
@@ -831,8 +893,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderRadius: 12,
-    position: 'absolute',
-    width: '100%', 
+    position: "absolute",
+    width: "100%",
     elevation: 9,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
