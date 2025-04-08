@@ -126,10 +126,10 @@ export default function EventSession({ route, navigation }) {
         </View>
         <View style={styles.headerInfo}>
           <Text style={styles.participantName}>
-            {participant.firstName || "N/A"} {participant.lastName || " "}
+            {eventDetails?.firstName || ""} {eventDetails?.lastName || ""}
           </Text>
           <Text style={styles.designation}>
-            {participant?.Designation || "N/A"}
+            {eventDetails?.Designation || "N/A"}
           </Text>
         </View>
       </View>

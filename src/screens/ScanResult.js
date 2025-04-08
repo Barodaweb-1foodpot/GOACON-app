@@ -32,15 +32,15 @@ export default function ScanResult({ route }) {
   const [showAnimation, setShowAnimation] = useState(false);
   const [eventDetails, setEventDetails] = useState(null);
   const [registerId, setRegisterId] = useState("");
-  const [exhibitionSession , setExhibitionSession] = useState([])
+  const [exhibitionSession, setExhibitionSession] = useState([]);
   const [processingSession, setProcessingSession] = useState(null);
   const [showSessions, setShowSessions] = useState(false);
+  const [participantData, setParticipantData] = useState("");
 
   useEffect(() => {
     if (data) {
       try {
-        console.log(data)
-       
+        console.log(data);
         setRegisterId(data);
         fetchDetails(data);
       } catch (error) {
@@ -55,20 +55,19 @@ export default function ScanResult({ route }) {
     }
   }, [data]);
 
-  const [participantData , setParticipantData] = useState('')
   const fetchDetails = async (data) => {
     try {
       setIsLoading(true);
-      const participantData = await fetchParticipantDetail(data);
-      setParticipantData(participantData) 
-      setEventDetails(participantData.data.exhibitionId);
-      if (!participantData.registrationScan || participantData.registrationScan===null) {
+      const fetchedData = await fetchParticipantDetail(data);
+      setParticipantData(fetchedData);
+      setEventDetails(fetchedData.data.exhibitionId);
+      // Use the nested 'data.registrationScan'
+      if (!fetchedData.data.registrationScan || fetchedData.data.registrationScan === null) {
         setShowSessions(false);
-      }
-      else{
-        console.log("-------------------------")
-        fetchExhibitionSession(participantData.exhibitionId._id)
-        setShowSessions(true)
+      } else {
+        console.log("-------------------------");
+        fetchExhibitionSession(fetchedData.data.exhibitionId._id);
+        setShowSessions(true);
       }
     } catch (error) {
       Toast.show({
@@ -94,15 +93,23 @@ export default function ScanResult({ route }) {
         return;
       }
 
-      const res = await markParticipantEntered(participantData._id,eventDetails._id);
-      // Update local state immediately
-      if(res.isOk)
-      {
-        fetchExhibitionSession(res.data.exhibitionId)
+      // Use the nested participant ID from participantData.data
+      const res = await markParticipantEntered(
+        participantData.data._id,
+        eventDetails._id
+      );
+
+      if (res.isOk) {
+        fetchExhibitionSession(res.data.exhibitionId);
       }
+
+      // Update local participant data: set registrationScan on the nested data object
       setParticipantData((prev) => ({
         ...prev,
-        registrationScan: eventDetails._id,
+        data: {
+          ...prev.data,
+          registrationScan: eventDetails._id,
+        },
       }));
       setShowAnimation(true);
       setTimeout(() => {
@@ -118,11 +125,20 @@ export default function ScanResult({ route }) {
     }
   };
 
-  const fetchExhibitionSession = async(exhibitionId)=>{
-    const res = await fetchSessionByExhibition(exhibitionId)
-    console.log("-------------",res)
-    setExhibitionSession(res.data)
-  }
+  const fetchExhibitionSession = async (exhibitionId) => {
+    try {
+      const res = await fetchSessionByExhibition(exhibitionId);
+      console.log("-------------", res);
+      setExhibitionSession(res.data);
+    } catch (error) {
+      console.error("Error fetching exhibition sessions:", error);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to fetch exhibition sessions.",
+      });
+    }
+  };
 
   const isSessionWithinTimeWindow = (startTime, endTime) => {
     if (!startTime || !endTime) return false;
@@ -140,7 +156,8 @@ export default function ScanResult({ route }) {
         onPress: async () => {
           try {
             setProcessingSession(sessionId);
-            await markSessionScanned(participantData._id, sessionId);
+            // Use nested participant ID
+            await markSessionScanned(participantData.data._id, sessionId);
             await fetchDetails(registerId);
             Toast.show({
               type: "success",
@@ -197,34 +214,59 @@ export default function ScanResult({ route }) {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.participantName}>
-          {eventDetails?.exhibitionEventName || "N/A"}
-        </Text> 
+          {participantData?.data?.firstName || ""}{" "}
+          {participantData?.data?.lastName || ""}
+        </Text>
         <View style={styles.statusBadge}>
           <Icon
-            name={participantData?.registrationScan === null || !participantData?.registrationScan ?"pending": "check-circle"  }
+            name={
+              participantData?.data?.registrationScan === null ||
+              !participantData?.data?.registrationScan
+                ? "pending"
+                : "check-circle"
+            }
             size={16}
-            color={!participantData?.registrationScan || participantData?.registrationScan===null ? "#FFA000" :"#4CAF50"}
+            color={
+              participantData?.data?.registrationScan === null ||
+              !participantData?.data?.registrationScan
+                ? "#FFA000"
+                : "#4CAF50"
+            }
           />
           <Text
             style={[
               styles.statusText,
-              { color: !participantData?.registrationScan || participantData?.registrationScan===null  ?  "#FFA000" :"#4CAF50" },
+              {
+                color:
+                  participantData?.data?.registrationScan === null ||
+                  !participantData?.data?.registrationScan
+                    ? "#FFA000"
+                    : "#4CAF50",
+              },
             ]}
           >
-            {!participantData?.registrationScan || participantData?.registrationScan===null ?  "Not Entered":"Checked In" }
+            { !participantData?.data?.registrationScan ||
+              participantData?.data?.registrationScan === null
+              ? "Not Entered"
+              : "Checked In"}
           </Text>
         </View>
       </View>
-
-      <Text style={styles.exhibitionEventName}>
-        {eventDetails?.exhibitionEventName || "N/A"}
-      </Text>
 
       <View style={styles.infoContainer}>
         <View style={styles.infoItem}>
           <Icon name="person" size={20} color="#FFFFFF" />
           <Text style={styles.infoText}>
-            {eventDetails?.companyName || "N/A"}
+            {participantData?.data?.companyName ||
+              participantData?.data?.CompanyName ||
+              "N/A"}
+          </Text>
+        </View>
+
+        <View style={styles.infoItem}>
+          <Icon name="badge" size={20} color="#FFFFFF" />
+          <Text style={styles.infoText}>
+            {participantData?.data?.Designation || "N/A"}
           </Text>
         </View>
 
@@ -246,16 +288,7 @@ export default function ScanResult({ route }) {
   );
 
   const renderSessionsCard = () => {
-    const availableSessions = exhibitionSession
-    // const availableSessions = exhibitionSession?.length>0 && exhibitionSession?.filter(
-    //   (session) =>
-    //     isSessionWithinTimeWindow(
-    //       session.startTime,
-    //       session.endTime
-    //     ) 
-    // );
-    
-
+    const availableSessions = exhibitionSession;
     if (!availableSessions || availableSessions.length === 0) {
       return (
         <View style={styles.noSessionsContainer}>
@@ -271,18 +304,13 @@ export default function ScanResult({ route }) {
       <>
         <Text style={styles.sessionsTitle}>Event Sessions</Text>
         <View style={styles.sessionsContainer}>
-        {availableSessions.map((session) => {
+          {availableSessions.map((session) => {
             const sessionStart = session.startTime;
             const sessionEnd = session.endTime;
-            const isAvailable = true
-            // const isAvailable = isSessionWithinTimeWindow(
-            //   sessionStart,
-            //   sessionEnd
-            // );
-            const isScanned = participantData?.sessionScan?.some(
+            const isAvailable = true;
+            const isScanned = participantData?.data?.sessionScan?.some(
               (scan) => scan.exhibitionSessionId === session._id
             );
-            
             return (
               <LinearGradient
                 key={session._id}
@@ -299,14 +327,12 @@ export default function ScanResult({ route }) {
                     <Text style={styles.sessionName}>
                       {session.sessionName || "Unnamed Session"}
                     </Text>
-
                     <View style={styles.timeContainer}>
                       <Icon name="event" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionDate}>
                         {formatDate(sessionStart)}
                       </Text>
                     </View>
-
                     <View style={styles.timeContainer}>
                       <Icon name="schedule" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionTime}>
@@ -315,7 +341,6 @@ export default function ScanResult({ route }) {
                         )}`}
                       </Text>
                     </View>
-
                     <View style={styles.locationContainer}>
                       <Icon name="location-on" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionLocation}>
@@ -323,7 +348,6 @@ export default function ScanResult({ route }) {
                       </Text>
                     </View>
                   </View>
-
                   {processingSession === session._id ? (
                     <ActivityIndicator size="small" color="#4CAF50" />
                   ) : (
@@ -345,10 +369,10 @@ export default function ScanResult({ route }) {
                       <LinearGradient
                         colors={
                           isScanned
-                            ? ["#4CAF50", "#2E7D32"] // Green gradient for scanned
+                            ? ["#4CAF50", "#2E7D32"]
                             : !isAvailable
-                              ? ["#9E9E9E", "#757575"] // Grey gradient for unavailable
-                              : ["#FFA000", "#F57C00"] // Orange gradient for available
+                            ? ["#9E9E9E", "#757575"]
+                            : ["#FFA000", "#F57C00"]
                         }
                         style={styles.buttonGradient}
                       >
@@ -356,8 +380,8 @@ export default function ScanResult({ route }) {
                           {isScanned
                             ? "Scanned ✓"
                             : !isAvailable
-                              ? "Not Available"
-                              : "Enter Session"}
+                            ? "Not Available"
+                            : "Enter Session"}
                         </Text>
                       </LinearGradient>
                     </TouchableOpacity>
@@ -373,11 +397,11 @@ export default function ScanResult({ route }) {
 
   return (
     <LinearGradient
-    colors={["#000B19", "#001F3F", "#003366"]}
-    style={styles.container}
-    start={{ x: 0.5, y: 0 }}
-    end={{ x: 0.5, y: 1 }}
-  >
+      colors={["#000B19", "#001F3F", "#003366"]}
+      style={styles.container}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
       <StatusBar style="light" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
@@ -566,7 +590,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sessionCard: {
-    backgroundColor: "#233446", // Solid color
+    backgroundColor: "#233446",
     borderRadius: 20,
     padding: 20,
     elevation: 8,
@@ -637,12 +661,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-SemiBold",
   },
-  scannedButton: {
-    // Additional styles if needed when scanned
-  },
-  unavailableButton: {
-    // Additional styles if needed when unavailable
-  },
+  scannedButton: {},
+  unavailableButton: {},
   centerContent: {
     alignItems: "center",
     justifyContent: "center",

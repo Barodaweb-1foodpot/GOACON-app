@@ -337,7 +337,9 @@ export default function Participants() {
               );
               try {
                 // Mark participant as entered
-                await markParticipantEntered(participantId, eventValue);
+                const response = await markParticipantEntered(participantId, eventValue);
+                console.log("Scan response:", response);
+                
                 // Update UI immediately for better responsiveness
                 setParticipants((prev) =>
                   prev.map((p) =>
@@ -346,7 +348,7 @@ export default function Participants() {
                           ...p,
                           isScanned: true,
                           scannedAt: new Date(),
-                          registrationScan: true,
+                          registrationScan: eventValue,
                         }
                       : p
                   )
@@ -787,7 +789,7 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
             color={isScanned ? "#4CAF50" : "#2C3E50"}
           />
           <Text style={[styles.infoText, isScanned && styles.scannedText]}>
-            {participant.companyName || "N/A"}
+            {participant.Designation || "N/A"}
           </Text>
         </View>
 
