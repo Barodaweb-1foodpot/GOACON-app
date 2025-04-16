@@ -20,6 +20,7 @@ import {
   fetchEventDetails,
   fetchParticipantDetail,
   fetchSessionByExhibition,
+  fetchSessionByExhibitionParticipant,
   markParticipantEntered,
   markSessionScanned,
 } from "../api/eventApi";
@@ -56,6 +57,16 @@ export default function ScanResult({ route }) {
       }
     }
   }, [data]);
+
+  
+  useEffect(() => {
+    if (participantData?.data?._id && eventDetails?._id) {
+      console.log('=== ScanResult: Fetching Exhibition Sessions ===');
+      console.log('Exhibition ID:', eventDetails._id);
+      console.log('Participant ID:', participantData.data._id);
+      fetchExhibitionSession(eventDetails._id);
+    }
+  }, [participantData, eventDetails]);
 
   const fetchDetails = async (data) => {
     try {
@@ -95,7 +106,9 @@ export default function ScanResult({ route }) {
         } else {
           console.log('=== ScanResult: Registration Scan Found, Fetching Sessions ===');
           console.log('Exhibition ID:', fetchedData.data.exhibitionId._id);
-          fetchExhibitionSession(fetchedData.data.exhibitionId._id);
+          if(participantData?.data?._id){
+            fetchExhibitionSession(fetchedData.data.exhibitionId._id);
+          }
           setShowSessions(true);
         }
       } else {
@@ -168,7 +181,8 @@ export default function ScanResult({ route }) {
     try {
       console.log('=== ScanResult: Fetching Exhibition Sessions ===');
       console.log('Exhibition ID:', exhibitionId);
-      const res = await fetchSessionByExhibition(exhibitionId);
+      console.log('--------------Participant ID:', participantData.data._id);
+      const res = await fetchSessionByExhibitionParticipant(exhibitionId, participantData.data._id);
       console.log('=== ScanResult: Session Data Received ===');
       console.log(JSON.stringify(res, null, 2));
       setExhibitionSession(res.data);

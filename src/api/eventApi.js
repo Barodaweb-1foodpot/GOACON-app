@@ -120,6 +120,23 @@ export const validateEventData = (data) => {
   });
 };
 
+export const fetchSessionByExhibitionParticipant = async (exhibitionId,participantId) => {
+  try {
+    console.log('=== API: Fetching Exhibition Sessions by participant===');
+    console.log('Exhibition ID:', exhibitionId);
+    
+    const res = await axios.post(`${API_BASE_URL}/auth/get/listEventSessionByExhibition/${exhibitionId}`, {participantId});
+    console.log('=== API: Session Response ===');
+    console.log(JSON.stringify(res.data, null, 2));  
+    
+    return res.data;
+  } catch (error) {
+    console.error('=== API: Error Fetching Sessions ===');
+    console.error(error);
+    handleApiError(error, "Unable to fetch session by exhibition.");
+  }
+};
+
 export const fetchSessionByExhibition = async (exhibitionId) => {
   try {
     console.log('=== API: Fetching Exhibition Sessions ===');
@@ -127,7 +144,7 @@ export const fetchSessionByExhibition = async (exhibitionId) => {
     
     const res = await axios.get(`${API_BASE_URL}/auth/get/listEventSessionByExhibition/${exhibitionId}`);
     console.log('=== API: Session Response ===');
-    console.log(JSON.stringify(res.data, null, 2));
+    console.log(JSON.stringify(res.data, null, 2));  
     
     return res.data;
   } catch (error) {
@@ -143,7 +160,7 @@ export const fetchParticipantDetail = async (data) => {
     console.log('Input Data:', data);
     
     // Ensure data is properly encoded for URL
-    const encodedData = encodeURIComponent(data);
+    const encodedData = encodeURIComponent(data); 
     console.log('=== API: Encoded Data ===');
     console.log(encodedData);
     

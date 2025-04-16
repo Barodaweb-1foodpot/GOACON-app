@@ -44,9 +44,10 @@ export const fetchParticipants = async (payload) => {
       per_page: perPage,
       sorton: "createdAt",
       sortdir: "desc",
-    };
+      isActive:true
+    }; 
 
-    console.log("Fetching participants with payload:", requestPayload);
+    console.log("Fetching participants with payload:", requestPayload); 
 
     const response = await axios.post(
       `${API_BASE_URL}/auth/participant/RegistrationScanCount`,
