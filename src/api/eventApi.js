@@ -32,8 +32,6 @@ export const fetchEventDetails = async (eventId) => {
   }
 };
 
- 
-
 export const markParticipantEntered = async (participantId, exhibitionId ) => {
   try {
     console.log(participantId, exhibitionId );
@@ -60,6 +58,7 @@ export const markParticipantEntered = async (participantId, exhibitionId ) => {
     handleApiError(error, "Unable to mark participant as entered.");
   }
 };
+
 export const fetchEventsByPartner = async (id) => {
   try { 
     console.log(id)
@@ -80,6 +79,7 @@ export const fetchEventsByPartner = async (id) => {
     throw error;
   }
 };
+
 export const markSessionScanned = async (participantId, exhibitionSessionId) => {
   try {
     // console.log(`Marking session ${sessionId} as scanned for event ${eventId}`);
@@ -120,26 +120,82 @@ export const validateEventData = (data) => {
   });
 };
 
-export const fetchSessionByExhibition=async(exhibitionId)=>{
+export const fetchSessionByExhibition = async (exhibitionId) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/auth/get/listEventSessionByExhibition/${exhibitionId}`)
-    console.log("=================",res)
-    return res.data
+    console.log('=== API: Fetching Exhibition Sessions ===');
+    console.log('Exhibition ID:', exhibitionId);
+    
+    const res = await axios.get(`${API_BASE_URL}/auth/get/listEventSessionByExhibition/${exhibitionId}`);
+    console.log('=== API: Session Response ===');
+    console.log(JSON.stringify(res.data, null, 2));
+    
+    return res.data;
   } catch (error) {
-    console.error("Error fetching session by exhibition:", error);
+    console.error('=== API: Error Fetching Sessions ===');
+    console.error(error);
     handleApiError(error, "Unable to fetch session by exhibition.");
   }
-} 
+};
 
-
-export const fetchParticipantDetail=async(data)=>{
+export const fetchParticipantDetail = async (data) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/auth/participant/forScan/${data}`)
-    console.log("=================",res.data)
-    return res.data
+    console.log('=== API: Fetching Participant Details ===');
+    console.log('Input Data:', data);
+    
+    // Ensure data is properly encoded for URL
+    const encodedData = encodeURIComponent(data);
+    console.log('=== API: Encoded Data ===');
+    console.log(encodedData);
+    
+    // Make the API call with the appropriate parameter
+    console.log('=== API: Making Request ===');
+    console.log(`${API_BASE_URL}/auth/participant/forScan/${encodedData}`);
+    
+    const res = await axios.get(
+      `${API_BASE_URL}/auth/participant/forScan/${encodedData}`
+    );
+    
+    console.log('=== API: Response Received ===');
+    console.log('Status:', res.status);
+    console.log('Data:', JSON.stringify(res.data, null, 2));
+    
+    // Check if we got valid data
+    if (!res.data || !res.data.data) {
+      console.error('=== API: Invalid Response Format ===');
+      console.error(res.data);
+      throw new Error(res.data?.message || "Failed to fetch participant details");
+    }
+    
+    return res.data;
   } catch (error) {
-    console.error("Error fetching session by exhibition:", error);
-    handleApiError(error, "Unable to fetch session by exhibition.");
+    console.error('=== API: Error in fetchParticipantDetail ===');
+    if (error.response) {
+      console.error('Response Error:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+    } else if (error.request) {
+      console.error('Request Error:', error.request);
+    } else {
+      console.error('Error:', error.message);
+    }
+    
+    // Get a more specific error message if available
+    let errorMessage = "Unable to fetch participant details.";
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    Toast.show({
+      type: "error",
+      text1: "Error",
+      text2: errorMessage,
+    });
+    
+    throw error;
   }
-} 
+};
  

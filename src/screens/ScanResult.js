@@ -40,15 +40,17 @@ export default function ScanResult({ route }) {
   useEffect(() => {
     if (data) {
       try {
+        console.log('=== ScanResult: Received Data from Scanner ===');
         console.log(data);
         setRegisterId(data);
         fetchDetails(data);
       } catch (error) {
-        console.error("Error parsing URL or extracting ID:", error);
+        console.error('=== ScanResult: Error Processing Initial Data ===');
+        console.error(error);
         Toast.show({
           type: "error",
           text1: "Invalid QR Code",
-          text2: "The scanned QR code is not valid.",
+          text2: "The scanned QR code is not valid or cannot be processed.",
         });
         setIsLoading(false);
       }
@@ -58,22 +60,59 @@ export default function ScanResult({ route }) {
   const fetchDetails = async (data) => {
     try {
       setIsLoading(true);
+      console.log('=== ScanResult: Fetching Participant Details ===');
+      console.log('Identifier:', data);
+      
       const fetchedData = await fetchParticipantDetail(data);
+      console.log('=== ScanResult: API Response ===');
+      console.log(JSON.stringify(fetchedData, null, 2));
+      
+      if (!fetchedData || !fetchedData.data) {
+        console.error('=== ScanResult: Invalid API Response ===');
+        console.error('Response:', fetchedData);
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "No participant found with the provided identifier.",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('=== ScanResult: Setting Participant Data ===');
+      console.log('Participant ID:', fetchedData.data._id);
       setParticipantData(fetchedData);
-      setEventDetails(fetchedData.data.exhibitionId);
-      // Use the nested 'data.registrationScan'
-      if (!fetchedData.data.registrationScan || fetchedData.data.registrationScan === null) {
-        setShowSessions(false);
+      
+      // Check if exhibition data exists
+      if (fetchedData.data.exhibitionId) {
+        console.log('=== ScanResult: Exhibition Data Found ===');
+        console.log('Exhibition:', fetchedData.data.exhibitionId);
+        setEventDetails(fetchedData.data.exhibitionId);
+        
+        // Check registration scan status
+        if (!fetchedData.data.registrationScan || fetchedData.data.registrationScan === null) {
+          setShowSessions(false);
+        } else {
+          console.log('=== ScanResult: Registration Scan Found, Fetching Sessions ===');
+          console.log('Exhibition ID:', fetchedData.data.exhibitionId._id);
+          fetchExhibitionSession(fetchedData.data.exhibitionId._id);
+          setShowSessions(true);
+        }
       } else {
-        console.log("-------------------------");
-        fetchExhibitionSession(fetchedData.data.exhibitionId._id);
-        setShowSessions(true);
+        console.warn('=== ScanResult: No Exhibition Data Found ===');
+        Toast.show({
+          type: "warning",
+          text1: "Warning",
+          text2: "No event data found for this participant.",
+        });
       }
     } catch (error) {
+      console.error('=== ScanResult: Error in fetchDetails ===');
+      console.error(error);
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: "Failed to fetch event details. Please try again.",
+        text2: error.message || "Failed to fetch participant details. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -127,11 +166,15 @@ export default function ScanResult({ route }) {
 
   const fetchExhibitionSession = async (exhibitionId) => {
     try {
+      console.log('=== ScanResult: Fetching Exhibition Sessions ===');
+      console.log('Exhibition ID:', exhibitionId);
       const res = await fetchSessionByExhibition(exhibitionId);
-      console.log("-------------", res);
+      console.log('=== ScanResult: Session Data Received ===');
+      console.log(JSON.stringify(res, null, 2));
       setExhibitionSession(res.data);
     } catch (error) {
-      console.error("Error fetching exhibition sessions:", error);
+      console.error('=== ScanResult: Error Fetching Sessions ===');
+      console.error(error);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -213,10 +256,6 @@ export default function ScanResult({ route }) {
   const renderParticipantCard = () => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.participantName}>
-          {participantData?.data?.firstName || ""}{" "}
-          {participantData?.data?.lastName || ""}
-        </Text>
         <View style={styles.statusBadge}>
           <Icon
             name={
@@ -256,11 +295,10 @@ export default function ScanResult({ route }) {
       <View style={styles.infoContainer}>
         <View style={styles.infoItem}>
           <Icon name="person" size={20} color="#FFFFFF" />
-          <Text style={styles.infoText}>
-            {participantData?.data?.companyName ||
-              participantData?.data?.CompanyName ||
-              "N/A"}
-          </Text>
+          <Text style={styles.participantName}>
+          {participantData?.data?.firstName || ""}{" "}
+          {participantData?.data?.lastName || ""}
+        </Text>
         </View>
 
         <View style={styles.infoItem}>
@@ -534,12 +572,14 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
+    width: "100%",
   },
   participantName: {
-    fontSize: 24,
+    fontSize: 20,
+    marginLeft: 8,
     fontWeight: "600",
     color: "#FFFFFF",
     fontFamily: "Poppins-Bold",
@@ -548,13 +588,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: "center",
   },
   statusText: {
-    marginLeft: 4,
-    fontSize: 12,
+    marginLeft: 6,
+    fontSize: 14,
     fontFamily: "Poppins-Medium",
   },
   exhibitionEventName: {
