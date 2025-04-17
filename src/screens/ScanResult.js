@@ -393,12 +393,12 @@ export default function ScanResult({ route }) {
               (scan) => scan.exhibitionSessionId === session._id
             );
 
-            const sessionStatus = isScanned
+            const sessionStatus = participantData.data.remainingScan == 0
               ? "Scanned"
               : isAvailable
                 ? "Active"
                 : "Upcoming";
-            const statusColor = isScanned
+            const statusColor = participantData.data.remainingScan == 0
               ? "#4CAF50"
               : isAvailable
                 ? "#FFA000"
@@ -437,6 +437,7 @@ export default function ScanResult({ route }) {
                           ]}
                         >
                           {sessionStatus}
+                    
                         </Text>
                       </View>
                     </View>
@@ -447,21 +448,23 @@ export default function ScanResult({ route }) {
                       <TouchableOpacity
                         style={[
                           styles.sessionButton,
-                          isScanned && styles.scannedButton,
+                          participantData.data.remainingScan == 0 && styles.scannedButton,
                           !isAvailable &&
-                            !isScanned &&
+                            !participantData.data.remainingScan == 0 &&
                             styles.unavailableButton,
                         ]}
                         onPress={() =>
-                          !isScanned &&
-                          isAvailable &&
+                          
                           handleSessionScan(session._id)
                         }
-                        disabled={isScanned || !isAvailable}
+                        disabled={
+                          isAvailable &&
+                          participantData.data.remainingScan === 0
+                        }
                       >
                         <LinearGradient
                           colors={
-                            isScanned
+                            participantData.data.remainingScan == 0
                               ? ["#4CAF50", "#2E7D32"]
                               : !isAvailable
                                 ? ["#9E9E9E", "#757575"]
@@ -470,12 +473,13 @@ export default function ScanResult({ route }) {
                           style={styles.buttonGradient}
                         >
                           <Text style={styles.buttonText}>
-                            {isScanned
+                           
+                            {participantData.data.remainingScan == 0
                               ? "Scanned ✓"
                               : !isAvailable
                                 ? "Not Available"
-                                : "Enter Session"}
-                          </Text>
+                                : `Enter Session (${participantData.data.remainingScan})`}
+                          </Text> 
                         </LinearGradient>
                       </TouchableOpacity>
                     )}

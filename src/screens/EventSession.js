@@ -178,12 +178,12 @@ export default function EventSession({ route, navigation }) {
         // Check if session is currently active (within time window)
         const isActive = isSessionWithinTimeWindow(sessionStart, sessionEnd);
 
-        const sessionStatus = isScanned
+        const sessionStatus = eventDetails?.remainingScan == 0
           ? "Scanned"
           : isActive
             ? "Active"
             : "Upcoming";
-        const statusColor = isScanned
+        const statusColor = eventDetails?.remainingScan == 0
           ? "#4CAF50"
           : isActive
             ? "#FFA000"
@@ -223,20 +223,17 @@ export default function EventSession({ route, navigation }) {
                   <TouchableOpacity
                     style={[
                       styles.sessionButton,
-                      isScanned && styles.scannedButton,
-                      !isActive && !isScanned && styles.unavailableButton,
+                      eventDetails?.remainingScan == 0 && styles.scannedButton,
+                      !isActive && !eventDetails?.remainingScan == 0 && styles.unavailableButton,
                     ]}
                     onPress={() =>
-                      !isScanned &&
-                      isActive &&
-                      session._id &&
                       handleSessionScan(session._id)
                     }
-                    disabled={isScanned || !isActive}
+                    disabled={eventDetails?.remainingScan === 0 || !isActive}
                   >
                     <LinearGradient
                       colors={
-                        isScanned
+                        eventDetails?.remainingScan == 0
                           ? ["#4CAF50", "#2E7D32"]
                           : !isActive
                             ? ["#9E9E9E", "#757575"]
@@ -245,11 +242,11 @@ export default function EventSession({ route, navigation }) {
                       style={styles.buttonGradient}
                     >
                       <Text style={styles.buttonText}>
-                        {isScanned
+                        {eventDetails?.remainingScan == 0
                           ? "Scanned ✓"
                           : !isActive
                             ? "Not Available"
-                            : "Enter Session"}
+                            : `Enter Session (${eventDetails?.remainingScan})`} 
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>

@@ -64,7 +64,7 @@ export const fetchEventsByPartner = async (id) => {
     console.log(id)
     const response = await axios.get(
       `${API_BASE_URL}/auth/get/listExhibitionByEventPartner/${id.eventPartner_id}`
-    );
+    ); 
     // console.log("------------------",response.data)
     
 
