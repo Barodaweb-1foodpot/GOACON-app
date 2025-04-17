@@ -4,8 +4,15 @@ import { API_BASE_URL } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const fetchEventPartners = async () => {
+  const token = await AsyncStorage.getItem("token");
   try {
-    const response = await axios.get(`${API_BASE_URL}/auth/list/eventpartner`);
+    const response = await axios.get(`${API_BASE_URL}/auth/list/eventpartner`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     console.log(
       "Event partners fetched:",
       response.data.map((partner) => partner.companyName)
@@ -25,7 +32,7 @@ export const fetchEventPartners = async () => {
 
 export const eventPartnerLogin = async (email, password) => {
   try {
-    console.log("Attempting Event Partner login...",API_BASE_URL);
+    console.log("Attempting Event Partner login...");
     const response = await axios.post(
       `${API_BASE_URL}/auth/eventPartnerLogin`,
       {
@@ -82,11 +89,16 @@ export const eventUserLogin = async (email, password, eventPartner) => {
   }
 };
 
-export const fetchEventUserDetails = async (userId) => {
+export const fetchEventUserDetails = async (userId, token) => {
   try {
     console.log(`Fetching details for Event User ID: ${userId}`);
     const response = await axios.get(
-      `${API_BASE_URL}/auth/get/EventUser/${userId}`
+      `${API_BASE_URL}/auth/get/EventUser/${userId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     console.log("Event User details fetched:", response.data);
 
@@ -104,11 +116,16 @@ export const fetchEventUserDetails = async (userId) => {
   }
 };
 
-export const fetchEventPartnerDetails = async (partnerId) => {
+export const fetchEventPartnerDetails = async (partnerId, token) => {
   try {
     console.log(`Fetching details for Event Partner ID: ${partnerId}`);
     const response = await axios.get(
-      `${API_BASE_URL}/auth/get/eventpartner/${partnerId}`
+      `${API_BASE_URL}/auth/get/eventpartner/${partnerId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     console.log("Event Partner details fetched:", response.data);
 

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react/prop-types */
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
@@ -128,10 +126,10 @@ export default function EventSession({ route, navigation }) {
         </View>
         <View style={styles.headerInfo}>
           <Text style={styles.participantName}>
-            {participant.firstName || "N/A"} {participant.lastName || " "}
+            {eventDetails?.firstName || ""} {eventDetails?.lastName || ""}
           </Text>
           <Text style={styles.designation}>
-            {participant?.companyName || "N/A"}
+            {eventDetails?.Designation || "N/A"}
           </Text>
         </View>
       </View>
@@ -174,11 +172,52 @@ export default function EventSession({ route, navigation }) {
             ]}
           >
             <View style={styles.sessionContent}>
-              <View style={styles.sessionInfo}>
-                <Text style={styles.sessionName}>
-                  {session.sessionName || "Unnamed Session"}
-                </Text>
+              <View style={styles.sessionHeader}>
+                <View style={styles.sessionTitleContainer}>
+                  <Text style={styles.sessionName}>
+                    {session.sessionName || "Unnamed Session"}
+                  </Text>
+                </View>
 
+                {processingSession === session._id ? (
+                  <ActivityIndicator size="small" color="#4CAF50" />
+                ) : (
+                  <TouchableOpacity
+                    style={[
+                      styles.sessionButton,
+                      isScanned && styles.scannedButton,
+                      !isAvailable && !isScanned && styles.unavailableButton,
+                    ]}
+                    onPress={() =>
+                      !isScanned &&
+                      isAvailable &&
+                      session._id &&
+                      handleSessionScan(session._id)
+                    }
+                  >
+                    <LinearGradient
+                      colors={
+                        isScanned
+                          ? ["#4CAF50", "#2E7D32"]
+                          : !isAvailable
+                            ? ["#9E9E9E", "#757575"]
+                            : ["#FFA000", "#F57C00"]
+                      }
+                      style={styles.buttonGradient}
+                    >
+                      <Text style={styles.buttonText}>
+                        {isScanned
+                          ? "Scanned ✓"
+                          : !isAvailable
+                            ? "Not Available"
+                            : "Enter Session"}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.sessionInfo}>
                 <View style={styles.timeContainer}>
                   <Icon name="event" size={16} color="#FFFFFF" />
                   <Text style={styles.sessionDate}>{formatDate(sessionStart)}</Text>
@@ -198,43 +237,6 @@ export default function EventSession({ route, navigation }) {
                   </Text>
                 </View>
               </View>
-
-              {processingSession === session._id ? (
-                <ActivityIndicator size="small" color="#4CAF50" />
-              ) : (
-                <TouchableOpacity
-                  style={[
-                    styles.sessionButton,
-                    isScanned && styles.scannedButton,
-                    !isAvailable && !isScanned && styles.unavailableButton,
-                  ]}
-                  onPress={() =>
-                    !isScanned &&
-                    isAvailable &&
-                    session._id &&
-                    handleSessionScan(session._id)
-                  }
-                >
-                  <LinearGradient
-                    colors={
-                      isScanned
-                        ? ["#4CAF50", "#2E7D32"]
-                        : !isAvailable
-                          ? ["#9E9E9E", "#757575"]
-                          : ["#FFA000", "#F57C00"]
-                    }
-                    style={styles.buttonGradient}
-                  >
-                    <Text style={styles.buttonText}>
-                      {isScanned
-                        ? "Scanned ✓"
-                        : !isAvailable
-                          ? "Not Available"
-                          : "Enter Session"}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
             </View>
           </View>
         );
@@ -400,19 +402,29 @@ const styles = StyleSheet.create({
   },
   sessionContent: {
     padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
-  sessionInfo: {
+  sessionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sessionTitleContainer: {
     flex: 1,
     marginRight: 12,
+  },
+  sessionInfo: {
+    width: '100%',
+  },
+  sessionButton: {
+    minWidth: 120,
+    overflow: "hidden",
+    borderRadius: 12,
   },
   sessionName: {
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
     color: "#FFFFFF",
-    marginBottom: 8,
   },
   timeContainer: {
     flexDirection: "row",
@@ -440,11 +452,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginLeft: 8,
     fontFamily: "Poppins-Regular",
-  },
-  sessionButton: {
-    minWidth: 120,
-    overflow: "hidden",
-    borderRadius: 12,
   },
   buttonGradient: {
     paddingVertical: 10,

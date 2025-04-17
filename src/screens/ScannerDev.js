@@ -49,16 +49,58 @@ export default function ScannerDev() {
       // Subtle haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      Alert.alert("QR Code Scanned", `Data: ${data}`, [
-        {
-          text: "OK",
-          onPress: () => {
-            navigation.navigate("ScanResult", { data });
+      // Parse the scanned data
+      let scanData = data;
+      console.log('=== Scanner: Raw QR Data ===');
+      console.log(data);
+      
+      // Check if it's a vCard format (begins with BEGIN:VCARD)
+      if (data.includes("BEGIN:VCARD")) {
+        console.log('=== Scanner: vCard Format Detected ===');
+        
+        // Extract email from vCard format
+        const emailMatch = data.match(/EMAIL[^:]*:(.*?)(?:\r?\n|$)/i);
+        if (emailMatch && emailMatch[1]) {
+          // Clean the email (remove any trailing characters)
+          scanData = emailMatch[1].trim().toLowerCase();
+          console.log('=== Scanner: Extracted Email ===');
+          console.log(scanData);
+        } else {
+          console.log('=== Scanner: No Email Found in vCard ===');
+        }
+      } else {
+        // Check if it's a valid email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailRegex.test(data)) {
+          scanData = data.toLowerCase(); // Normalize email to lowercase
+          console.log('=== Scanner: Direct Email Format ===');
+          console.log(scanData);
+        } else {
+          console.log('=== Scanner: Non-Email Format (possibly ID) ===');
+          console.log(scanData);
+        }
+      }
+
+      console.log('=== Scanner: Final Data Being Passed ===');
+      console.log(scanData);
+
+      Alert.alert(
+        "QR Code Scanned", 
+        `Data: ${scanData}`, 
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              console.log('=== Scanner: Navigating to ScanResult with data ===');
+              console.log(scanData);
+              navigation.navigate("ScanResult", { data: scanData });
+            },
           },
-        },
-      ]);
+        ]
+      );
     } catch (error) {
-      console.error("Error processing scan:", error);
+      console.error("=== Scanner: Error Processing Scan ===");
+      console.error(error);
       setScanned(false);
       setIsNavigating(false);
     }

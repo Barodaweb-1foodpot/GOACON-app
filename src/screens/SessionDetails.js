@@ -1,7 +1,3 @@
-/* eslint-disable react/jsx-no-duplicate-props */
-/* eslint-disable react/display-name */
-/* eslint-disable react/prop-types */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
@@ -121,7 +117,7 @@ export default function SessionDetails() {
       const eventsList = await fetchEventsByPartner(partnerId);
       console.log(eventsList)
       const formattedEvents = [
-        { label: "All Events", value: null },
+        { label: "Select Events", value: null },
         ...eventsList.data.map((event) => ({
           label: event.exhibitionEventName,
           value: event._id,
@@ -635,7 +631,7 @@ const styles = StyleSheet.create({
   },
   selectedSessionCard: {
     borderLeftColor: "#4CAF50",
-    backgroundColor: "#002D5C",
+    backgroundColor: "#003366",
   },
   cardHeader: {
     flexDirection: "row",
@@ -647,24 +643,20 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
     color: "#FFFFFF",
     flex: 1,
+    marginRight: 8,
   },
   expandedDetails: {
-    marginTop: 10,
-    backgroundColor: "#001428",
-    borderRadius: 16,
-    padding: 15,
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    color: "#FFFFFF",
-    marginTop: 5,
+    marginTop: 12,
+    backgroundColor: "#001F3F",
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
   },
   detailText: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "#FFFFFF",
-    marginTop: 2,
+    color: "#E0E0E0",
+    flex: 1,
   },
   listContentContainer: {
     paddingBottom: 20,
@@ -695,8 +687,7 @@ const styles = StyleSheet.create({
   },
   locationContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
+    alignItems: "flex-start",
     gap: 8,
   },
   loadingText: {

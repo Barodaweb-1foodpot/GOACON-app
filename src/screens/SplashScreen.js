@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-require-imports */
 import React, { useRef, useEffect } from "react";
 import {
   View,
@@ -30,7 +28,7 @@ const STAR_COLORS = [
   "rgba(255, 223, 186, 0.8)",
 ];
 
-export default function SplashScreen() {
+export default function SplashScreen({ onAnimationComplete }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
@@ -56,7 +54,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Main content animations
-    Animated.sequence([
+    const mainAnimation = Animated.sequence([
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -82,7 +80,14 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
-    ]).start();
+    ]);
+
+    mainAnimation.start(() => {
+      // Call the callback when animation finishes, if provided
+      if (onAnimationComplete) {
+        onAnimationComplete();
+      }
+    });
 
     stars.forEach((star) => {
       const createTwinkle = () => {
@@ -102,7 +107,7 @@ export default function SplashScreen() {
 
       setTimeout(createTwinkle, star.delay);
     });
-  }, []);
+  }, [onAnimationComplete]);
 
   return (
     <View style={styles.container}>
@@ -205,20 +210,24 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: height * 0.25,
   },
+  // Updated text container styling from Code 1
   textContainer: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 60 : 40,
+    bottom: Platform.OS === "ios" ? 80 : 60,
     alignItems: "center",
-    paddingHorizontal: 10, 
+    paddingHorizontal: 20,
+    width: "100%",
   },
+  // Updated app name text styling from Code 1
   appNameText: {
-    fontSize: 30,
+    fontSize: 32,
     color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     letterSpacing: 2,
-    paddingBottom: 5, 
+    paddingBottom: 5,
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
+    textAlign: "center",
   },
 });
