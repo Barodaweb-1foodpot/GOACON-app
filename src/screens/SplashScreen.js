@@ -151,7 +151,7 @@ export default function SplashScreen({ onAnimationComplete }) {
           ]}
         >
           <Image
-            source={require("../../assets/app_icon.png")}
+            source={require("../../assets/Bweb.png")}
             style={styles.logo}
             resizeMode="contain"
           />

@@ -30,7 +30,7 @@ import {
   eventUserLogin,
 } from "../api/adminApi";
 
-import logo from "../../assets/app_icon.png";
+import logo from "../../assets/Bweb.png";
 
 export default function LoginPage() {
   const [localUserType, setLocalUserType] = useState("eventPartner");
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoContainer: {
-    width: 150,
+    width: 180,
   },
   logo: {
     width: "100%",
