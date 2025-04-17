@@ -16,17 +16,22 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { fetchEventDetails, fetchEventsByPartner, fetchParticipantDetail, markSessionScanned } from "../api/eventApi";
+import {
+  fetchEventDetails,
+  fetchEventsByPartner,
+  fetchParticipantDetail,
+  markSessionScanned,
+} from "../api/eventApi";
 import { useAuthContext } from "../context/AuthContext";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function EventSession({ route, navigation }) {
   const { participant } = route.params;
   const [isLoading, setIsLoading] = useState(true);
   const [eventDetails, setEventDetails] = useState(null);
   const [processingSession, setProcessingSession] = useState(null);
-  const [sessionDetail, setSessionDetail] = useState([])
+  const [sessionDetail, setSessionDetail] = useState([]);
   useEffect(() => {
     fetchDetails();
   }, []);
@@ -36,12 +41,11 @@ export default function EventSession({ route, navigation }) {
   }, [userType, selectedEventPartner, user]);
   const fetchDetails = async () => {
     try {
-
       setIsLoading(true);
-      console.log("pppp", participant)
+      console.log("pppp", participant);
       const data = await fetchParticipantDetail(participant._id);
       setEventDetails(data.data);
-      setSessionDetail(data.sessiondata)
+      setSessionDetail(data.sessiondata);
     } catch (error) {
       console.error("Failed to fetch session details:", error);
       Toast.show({
@@ -63,40 +67,36 @@ export default function EventSession({ route, navigation }) {
   };
 
   const handleSessionScan = async (sessionId) => {
-    Alert.alert(
-      "Enter Session",
-      "Do you want to enter this session?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
+    Alert.alert("Enter Session", "Do you want to enter this session?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Yes",
+        onPress: async () => {
+          try {
+            setProcessingSession(sessionId);
+            await markSessionScanned(participant._id, sessionId);
+            await fetchDetails();
+            Toast.show({
+              type: "success",
+              text1: "Success",
+              text2: "Session entered successfully",
+            });
+          } catch (error) {
+            console.error("Failed to enter session:", error);
+            Toast.show({
+              type: "error",
+              text1: "Error",
+              text2: "Failed to enter session.",
+            });
+          } finally {
+            setProcessingSession(null);
+          }
         },
-        {
-          text: "Yes",
-          onPress: async () => {
-            try {
-              setProcessingSession(sessionId);
-              await markSessionScanned(participant._id, sessionId);
-              await fetchDetails();
-              Toast.show({
-                type: "success",
-                text1: "Success",
-                text2: "Session entered successfully",
-              });
-            } catch (error) {
-              console.error("Failed to enter session:", error);
-              Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: "Failed to enter session.",
-              });
-            } finally {
-              setProcessingSession(null);
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const formatDateTime = (dateString) => {
@@ -139,7 +139,12 @@ export default function EventSession({ route, navigation }) {
           {eventDetails?.exhibitionId?.exhibitionEventName || "N/A"}
         </Text>
         <View style={styles.dateContainer}>
-          <Icon name="event" size={18} color="#FFFFFF" style={styles.iconStyle} />
+          <Icon
+            name="event"
+            size={18}
+            color="#FFFFFF"
+            style={styles.iconStyle}
+          />
           <Text style={styles.eventDate}>
             {formatDate(eventDetails?.exhibitionId?.startTime)} to{" "}
             {formatDate(eventDetails?.exhibitionId?.endTime)}
@@ -152,24 +157,42 @@ export default function EventSession({ route, navigation }) {
   const renderSessionsCard = () => (
     <View style={styles.sessionsContainer}>
       <Text style={styles.sectionTitle}>Available Sessions</Text>
+      {sessionDetail?.length === 0 && (
+        <View style={styles.emptySessionsContainer}>
+          <Icon name="event-busy" size={40} color="#FFFFFF" />
+          <Text style={styles.emptySessionsText}>
+            No sessions available for this event
+          </Text>
+        </View>
+      )}
       {sessionDetail?.map((session) => {
         const sessionStart = session.startTime;
         const sessionEnd = session.endTime;
 
         // ✅ Check if participant has scanned this session
         const isScanned = eventDetails?.sessionScan?.some(
-          (scan) => scan.exhibitionSessionId?.toString() === session._id?.toString()
+          (scan) =>
+            scan.exhibitionSessionId?.toString() === session._id?.toString()
         );
 
-        const isAvailable = true;
+        // Check if session is currently active (within time window)
+        const isActive = isSessionWithinTimeWindow(sessionStart, sessionEnd);
+
+        const sessionStatus = isScanned
+          ? "Scanned"
+          : isActive
+            ? "Active"
+            : "Upcoming";
+        const statusColor = isScanned
+          ? "#4CAF50"
+          : isActive
+            ? "#FFA000"
+            : "#9E9E9E";
 
         return (
           <View
             key={session._id}
-            style={[
-              styles.sessionCard,
-              { borderLeftColor: isScanned ? "#4CAF50" : "#FFA000" },
-            ]}
+            style={[styles.sessionCard, { borderLeftColor: statusColor }]}
           >
             <View style={styles.sessionContent}>
               <View style={styles.sessionHeader}>
@@ -177,6 +200,21 @@ export default function EventSession({ route, navigation }) {
                   <Text style={styles.sessionName}>
                     {session.sessionName || "Unnamed Session"}
                   </Text>
+                  <View
+                    style={[
+                      styles.sessionStatusBadge,
+                      {
+                        backgroundColor: `${statusColor}20`,
+                        borderColor: `${statusColor}50`,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.sessionStatusText, { color: statusColor }]}
+                    >
+                      {sessionStatus}
+                    </Text>
+                  </View>
                 </View>
 
                 {processingSession === session._id ? (
@@ -186,20 +224,21 @@ export default function EventSession({ route, navigation }) {
                     style={[
                       styles.sessionButton,
                       isScanned && styles.scannedButton,
-                      !isAvailable && !isScanned && styles.unavailableButton,
+                      !isActive && !isScanned && styles.unavailableButton,
                     ]}
                     onPress={() =>
                       !isScanned &&
-                      isAvailable &&
+                      isActive &&
                       session._id &&
                       handleSessionScan(session._id)
                     }
+                    disabled={isScanned || !isActive}
                   >
                     <LinearGradient
                       colors={
                         isScanned
                           ? ["#4CAF50", "#2E7D32"]
-                          : !isAvailable
+                          : !isActive
                             ? ["#9E9E9E", "#757575"]
                             : ["#FFA000", "#F57C00"]
                       }
@@ -208,7 +247,7 @@ export default function EventSession({ route, navigation }) {
                       <Text style={styles.buttonText}>
                         {isScanned
                           ? "Scanned ✓"
-                          : !isAvailable
+                          : !isActive
                             ? "Not Available"
                             : "Enter Session"}
                       </Text>
@@ -220,7 +259,9 @@ export default function EventSession({ route, navigation }) {
               <View style={styles.sessionInfo}>
                 <View style={styles.timeContainer}>
                   <Icon name="event" size={16} color="#FFFFFF" />
-                  <Text style={styles.sessionDate}>{formatDate(sessionStart)}</Text>
+                  <Text style={styles.sessionDate}>
+                    {formatDate(sessionStart)}
+                  </Text>
                 </View>
 
                 <View style={styles.timeContainer}>
@@ -241,7 +282,6 @@ export default function EventSession({ route, navigation }) {
           </View>
         );
       })}
-
     </View>
   );
 
@@ -404,9 +444,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sessionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   sessionTitleContainer: {
@@ -414,7 +454,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sessionInfo: {
-    width: '100%',
+    width: "100%",
   },
   sessionButton: {
     minWidth: 120,
@@ -465,5 +505,33 @@ const styles = StyleSheet.create({
   },
   iconStyle: {
     marginRight: 8,
+  },
+  sessionStatusBadge: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  sessionStatusText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+  },
+  emptySessionsContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    padding: 24,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 16,
+  },
+  emptySessionsText: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    marginTop: 12,
+    opacity: 0.7,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
   },
 });

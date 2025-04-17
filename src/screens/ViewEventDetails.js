@@ -81,6 +81,7 @@ const skeletonStyles = RNStyleSheet.create({
 /* ---------------- EventImage Component ---------------- */
 const EventImage = ({ eventImage }) => {
   const [loaded, setLoaded] = React.useState(false);
+
   const imageSource =
     eventImage && eventImage !== "null"
       ? { uri: `https://server.bwebevents.com/${eventImage}` }
@@ -92,8 +93,14 @@ const EventImage = ({ eventImage }) => {
       <Image
         source={imageSource}
         style={[styles.eventImage, { opacity: loaded ? 1 : 0 }]}
-        onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
+        onLoad={() => {
+          console.log("Image loaded successfully");
+          setLoaded(true);
+        }}
+        onError={(error) => {
+          console.log("Image loading error:", error.nativeEvent);
+          setLoaded(true);
+        }}
         resizeMode="cover"
       />
     </View>
@@ -129,15 +136,15 @@ export default function ViewEventDetails() {
   }, []);
 
   useEffect(() => {
-   fetchSession()
+    fetchSession();
   }, [event]);
-  const [exhibitionSession, setExhibitionSession] = useState([])
+  const [exhibitionSession, setExhibitionSession] = useState([]);
   const fetchSession = async () => {
     console.log(event);
-    const res = await fetchSessionByExhibition(event._id)
-    console.log("-------------",res)
-    setExhibitionSession(res.data)
-  }
+    const res = await fetchSessionByExhibition(event._id);
+    console.log("-------------", res);
+    setExhibitionSession(res.data);
+  };
 
   const formatDateRange = (startDate, endDate) => {
     if (!startDate || !endDate) return "N/A";
@@ -235,7 +242,7 @@ export default function ViewEventDetails() {
             },
           ]}
         >
-          <EventImage eventImage={event.EventImage} />
+          <EventImage eventImage={event.images && event.images[0]} />
         </Animated.View>
 
         {/* Event Information */}

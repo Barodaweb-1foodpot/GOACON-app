@@ -117,7 +117,7 @@ export default function Events() {
         eventPartner_id: partnerId,
       };
       const response = await fetchEventsByPartner(payload);
-      console.log(response)
+      console.log(response);
       setEvents(response.data || []);
     } catch (err) {
       setError("Failed to fetch events.");
@@ -220,7 +220,7 @@ export default function Events() {
         style={styles.eventCard}
       >
         <View style={styles.imageContainer}>
-          <EventImage eventImage={item.EventImage} />
+          <EventImage eventImage={item.images && item.images[0]} />
         </View>
 
         <View style={styles.eventContent}>
@@ -240,9 +240,7 @@ export default function Events() {
                 onPress={() => Linking.openURL(item.locationLink)}
                 style={styles.locationContainer}
               >
-                <Text style={styles.locationText}>
-                  {item.address}
-                </Text>
+                <Text style={styles.locationText}>{item.address}</Text>
               </TouchableOpacity>
             </View>
           </View>

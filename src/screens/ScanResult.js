@@ -41,12 +41,12 @@ export default function ScanResult({ route }) {
   useEffect(() => {
     if (data) {
       try {
-        console.log('=== ScanResult: Received Data from Scanner ===');
+        console.log("=== ScanResult: Received Data from Scanner ===");
         console.log(data);
         setRegisterId(data);
         fetchDetails(data);
       } catch (error) {
-        console.error('=== ScanResult: Error Processing Initial Data ===');
+        console.error("=== ScanResult: Error Processing Initial Data ===");
         console.error(error);
         Toast.show({
           type: "error",
@@ -58,12 +58,11 @@ export default function ScanResult({ route }) {
     }
   }, [data]);
 
-  
   useEffect(() => {
     if (participantData?.data?._id && eventDetails?._id) {
-      console.log('=== ScanResult: Fetching Exhibition Sessions ===');
-      console.log('Exhibition ID:', eventDetails._id);
-      console.log('Participant ID:', participantData.data._id);
+      console.log("=== ScanResult: Fetching Exhibition Sessions ===");
+      console.log("Exhibition ID:", eventDetails._id);
+      console.log("Participant ID:", participantData.data._id);
       fetchExhibitionSession(eventDetails._id);
     }
   }, [participantData, eventDetails]);
@@ -71,16 +70,16 @@ export default function ScanResult({ route }) {
   const fetchDetails = async (data) => {
     try {
       setIsLoading(true);
-      console.log('=== ScanResult: Fetching Participant Details ===');
-      console.log('Identifier:', data);
-      
+      console.log("=== ScanResult: Fetching Participant Details ===");
+      console.log("Identifier:", data);
+
       const fetchedData = await fetchParticipantDetail(data);
-      console.log('=== ScanResult: API Response ===');
+      console.log("=== ScanResult: API Response ===");
       console.log(JSON.stringify(fetchedData, null, 2));
-      
+
       if (!fetchedData || !fetchedData.data) {
-        console.error('=== ScanResult: Invalid API Response ===');
-        console.error('Response:', fetchedData);
+        console.error("=== ScanResult: Invalid API Response ===");
+        console.error("Response:", fetchedData);
         Toast.show({
           type: "error",
           text1: "Error",
@@ -89,30 +88,35 @@ export default function ScanResult({ route }) {
         setIsLoading(false);
         return;
       }
-      
-      console.log('=== ScanResult: Setting Participant Data ===');
-      console.log('Participant ID:', fetchedData.data._id);
+
+      console.log("=== ScanResult: Setting Participant Data ===");
+      console.log("Participant ID:", fetchedData.data._id);
       setParticipantData(fetchedData);
-      
+
       // Check if exhibition data exists
       if (fetchedData.data.exhibitionId) {
-        console.log('=== ScanResult: Exhibition Data Found ===');
-        console.log('Exhibition:', fetchedData.data.exhibitionId);
+        console.log("=== ScanResult: Exhibition Data Found ===");
+        console.log("Exhibition:", fetchedData.data.exhibitionId);
         setEventDetails(fetchedData.data.exhibitionId);
-        
+
         // Check registration scan status
-        if (!fetchedData.data.registrationScan || fetchedData.data.registrationScan === null) {
+        if (
+          !fetchedData.data.registrationScan ||
+          fetchedData.data.registrationScan === null
+        ) {
           setShowSessions(false);
         } else {
-          console.log('=== ScanResult: Registration Scan Found, Fetching Sessions ===');
-          console.log('Exhibition ID:', fetchedData.data.exhibitionId._id);
-          if(participantData?.data?._id){
+          console.log(
+            "=== ScanResult: Registration Scan Found, Fetching Sessions ==="
+          );
+          console.log("Exhibition ID:", fetchedData.data.exhibitionId._id);
+          if (participantData?.data?._id) {
             fetchExhibitionSession(fetchedData.data.exhibitionId._id);
           }
           setShowSessions(true);
         }
       } else {
-        console.warn('=== ScanResult: No Exhibition Data Found ===');
+        console.warn("=== ScanResult: No Exhibition Data Found ===");
         Toast.show({
           type: "warning",
           text1: "Warning",
@@ -120,12 +124,14 @@ export default function ScanResult({ route }) {
         });
       }
     } catch (error) {
-      console.error('=== ScanResult: Error in fetchDetails ===');
+      console.error("=== ScanResult: Error in fetchDetails ===");
       console.error(error);
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: error.message || "Failed to fetch participant details. Please try again.",
+        text2:
+          error.message ||
+          "Failed to fetch participant details. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -179,15 +185,18 @@ export default function ScanResult({ route }) {
 
   const fetchExhibitionSession = async (exhibitionId) => {
     try {
-      console.log('=== ScanResult: Fetching Exhibition Sessions ===');
-      console.log('Exhibition ID:', exhibitionId);
-      console.log('--------------Participant ID:', participantData.data._id);
-      const res = await fetchSessionByExhibitionParticipant(exhibitionId, participantData.data._id);
-      console.log('=== ScanResult: Session Data Received ===');
+      console.log("=== ScanResult: Fetching Exhibition Sessions ===");
+      console.log("Exhibition ID:", exhibitionId);
+      console.log("--------------Participant ID:", participantData.data._id);
+      const res = await fetchSessionByExhibitionParticipant(
+        exhibitionId,
+        participantData.data._id
+      );
+      console.log("=== ScanResult: Session Data Received ===");
       console.log(JSON.stringify(res, null, 2));
       setExhibitionSession(res.data);
     } catch (error) {
-      console.error('=== ScanResult: Error Fetching Sessions ===');
+      console.error("=== ScanResult: Error Fetching Sessions ===");
       console.error(error);
       Toast.show({
         type: "error",
@@ -298,8 +307,8 @@ export default function ScanResult({ route }) {
               },
             ]}
           >
-            { !participantData?.data?.registrationScan ||
-              participantData?.data?.registrationScan === null
+            {!participantData?.data?.registrationScan ||
+            participantData?.data?.registrationScan === null
               ? "Not Entered"
               : "Checked In"}
           </Text>
@@ -310,9 +319,9 @@ export default function ScanResult({ route }) {
         <View style={styles.infoItem}>
           <Icon name="person" size={20} color="#FFFFFF" />
           <Text style={styles.participantName}>
-          {participantData?.data?.firstName || ""}{" "}
-          {participantData?.data?.lastName || ""}
-        </Text>
+            {participantData?.data?.firstName || ""}{" "}
+            {participantData?.data?.lastName || ""}
+          </Text>
         </View>
 
         <View style={styles.infoItem}>
@@ -324,9 +333,7 @@ export default function ScanResult({ route }) {
 
         <View style={styles.infoItem}>
           <Icon name="room" size={20} color="#FFFFFF" />
-          <Text style={styles.infoText}>
-            {eventDetails?.address || "N/A"}
-          </Text>
+          <Text style={styles.infoText}>{eventDetails?.address || "N/A"}</Text>
         </View>
 
         <View style={styles.infoItem}>
@@ -352,17 +359,51 @@ export default function ScanResult({ route }) {
       );
     }
 
+    // Filter sessions that are currently active based on time window
+    const currentSessions = availableSessions.filter((session) =>
+      isSessionWithinTimeWindow(session.startTime, session.endTime)
+    );
+
+    if (currentSessions.length === 0) {
+      return (
+        <View style={styles.noSessionsContainer}>
+          <Icon name="schedule" size={48} color="#FFFFFF" />
+          <Text style={styles.noSessionsText}>
+            No sessions available at this time
+          </Text>
+          <Text style={styles.noSessionsSubText}>
+            Please check back during scheduled session times
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <>
-        <Text style={styles.sessionsTitle}>Event Sessions</Text>
+        <Text style={styles.sessionsTitle}>Current Sessions</Text>
         <View style={styles.sessionsContainer}>
-          {availableSessions.map((session) => {
+          {currentSessions.map((session) => {
             const sessionStart = session.startTime;
             const sessionEnd = session.endTime;
-            const isAvailable = true;
+            const isAvailable = isSessionWithinTimeWindow(
+              sessionStart,
+              sessionEnd
+            );
             const isScanned = participantData?.data?.sessionScan?.some(
               (scan) => scan.exhibitionSessionId === session._id
             );
+
+            const sessionStatus = isScanned
+              ? "Scanned"
+              : isAvailable
+                ? "Active"
+                : "Upcoming";
+            const statusColor = isScanned
+              ? "#4CAF50"
+              : isAvailable
+                ? "#FFA000"
+                : "#9E9E9E";
+
             return (
               <LinearGradient
                 key={session._id}
@@ -370,15 +411,77 @@ export default function ScanResult({ route }) {
                 style={[
                   styles.sessionCard,
                   {
-                    borderLeftColor: isScanned ? "#4CAF50" : "#FFA000",
+                    borderLeftColor: statusColor,
                   },
                 ]}
               >
                 <View style={styles.sessionContent}>
+                  <View style={styles.sessionHeader}>
+                    <View style={styles.sessionTitleContainer}>
+                      <Text style={styles.sessionName}>
+                        {session.sessionName || "Unnamed Session"}
+                      </Text>
+                      <View
+                        style={[
+                          styles.sessionStatusBadge,
+                          {
+                            backgroundColor: `${statusColor}20`,
+                            borderColor: `${statusColor}50`,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.sessionStatusText,
+                            { color: statusColor },
+                          ]}
+                        >
+                          {sessionStatus}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {processingSession === session._id ? (
+                      <ActivityIndicator size="small" color="#4CAF50" />
+                    ) : (
+                      <TouchableOpacity
+                        style={[
+                          styles.sessionButton,
+                          isScanned && styles.scannedButton,
+                          !isAvailable &&
+                            !isScanned &&
+                            styles.unavailableButton,
+                        ]}
+                        onPress={() =>
+                          !isScanned &&
+                          isAvailable &&
+                          handleSessionScan(session._id)
+                        }
+                        disabled={isScanned || !isAvailable}
+                      >
+                        <LinearGradient
+                          colors={
+                            isScanned
+                              ? ["#4CAF50", "#2E7D32"]
+                              : !isAvailable
+                                ? ["#9E9E9E", "#757575"]
+                                : ["#FFA000", "#F57C00"]
+                          }
+                          style={styles.buttonGradient}
+                        >
+                          <Text style={styles.buttonText}>
+                            {isScanned
+                              ? "Scanned ✓"
+                              : !isAvailable
+                                ? "Not Available"
+                                : "Enter Session"}
+                          </Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
                   <View style={styles.sessionInfo}>
-                    <Text style={styles.sessionName}>
-                      {session.sessionName || "Unnamed Session"}
-                    </Text>
                     <View style={styles.timeContainer}>
                       <Icon name="event" size={16} color="#FFFFFF" />
                       <Text style={styles.sessionDate}>
@@ -400,44 +503,6 @@ export default function ScanResult({ route }) {
                       </Text>
                     </View>
                   </View>
-                  {processingSession === session._id ? (
-                    <ActivityIndicator size="small" color="#4CAF50" />
-                  ) : (
-                    <TouchableOpacity
-                      style={[
-                        styles.sessionButton,
-                        isScanned && styles.scannedButton,
-                        !isAvailable &&
-                          !isScanned &&
-                          styles.unavailableButton,
-                      ]}
-                      onPress={() =>
-                        !isScanned &&
-                        isAvailable &&
-                        handleSessionScan(session._id)
-                      }
-                      disabled={isScanned || !isAvailable}
-                    >
-                      <LinearGradient
-                        colors={
-                          isScanned
-                            ? ["#4CAF50", "#2E7D32"]
-                            : !isAvailable
-                            ? ["#9E9E9E", "#757575"]
-                            : ["#FFA000", "#F57C00"]
-                        }
-                        style={styles.buttonGradient}
-                      >
-                        <Text style={styles.buttonText}>
-                          {isScanned
-                            ? "Scanned ✓"
-                            : !isAvailable
-                            ? "Not Available"
-                            : "Enter Session"}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
                 </View>
               </LinearGradient>
             );
@@ -645,31 +710,49 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sessionCard: {
-    backgroundColor: "#233446",
+    // backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 20,
-    padding: 20,
+    borderLeftWidth: 4,
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.84,
-    borderLeftWidth: 4,
     marginBottom: 16,
   },
   sessionContent: {
+    padding: 16,
+  },
+  sessionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
-  sessionInfo: {
+  sessionTitleContainer: {
     flex: 1,
     marginRight: 12,
+  },
+  sessionInfo: {
+    width: "100%",
   },
   sessionName: {
     fontSize: 18,
     fontFamily: "Poppins-SemiBold",
     color: "#FFFFFF",
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  sessionStatusBadge: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  sessionStatusText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
   },
   timeContainer: {
     flexDirection: "row",
@@ -808,6 +891,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#FFFFFF",
     marginTop: 12,
+    opacity: 0.7,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
+  },
+  noSessionsSubText: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    marginTop: 8,
     opacity: 0.7,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
