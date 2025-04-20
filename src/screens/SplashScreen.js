@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Font from "expo-font";
 
 const { width, height } = Dimensions.get("window");
 const STATUSBAR_HEIGHT = Platform.OS === "ios" ? 40 : StatusBar.currentHeight;
@@ -28,7 +29,7 @@ const STAR_COLORS = [
   "rgba(255, 223, 186, 0.8)",
 ];
 
-export default function SplashScreen({ onAnimationComplete }) {
+export default function SplashScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
@@ -53,6 +54,22 @@ export default function SplashScreen({ onAnimationComplete }) {
   ).current;
 
   useEffect(() => {
+    // Load fonts directly in the splash screen component
+    async function loadFonts() {
+      if (!Font.isLoaded('Poppins-SemiBold')) {
+        try {
+          await Font.loadAsync({
+            'Poppins-SemiBold': require('../../assets/fonts/Poppins-SemiBold.ttf'),
+          });
+          console.log('Splash screen - Font loaded successfully');
+        } catch (e) {
+          console.error('Error loading font in splash screen:', e);
+        }
+      }
+    }
+    
+    loadFonts();
+
     // Main content animations
     const mainAnimation = Animated.sequence([
       Animated.parallel([
@@ -82,12 +99,7 @@ export default function SplashScreen({ onAnimationComplete }) {
       ]),
     ]);
 
-    mainAnimation.start(() => {
-      // Call the callback when animation finishes, if provided
-      if (onAnimationComplete) {
-        onAnimationComplete();
-      }
-    });
+    mainAnimation.start();
 
     stars.forEach((star) => {
       const createTwinkle = () => {
@@ -107,7 +119,7 @@ export default function SplashScreen({ onAnimationComplete }) {
 
       setTimeout(createTwinkle, star.delay);
     });
-  }, [onAnimationComplete]);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -151,7 +163,7 @@ export default function SplashScreen({ onAnimationComplete }) {
           ]}
         >
           <Image
-            source={require("../../assets/Bweb.png")}
+            source={require("../../assets/BwebPartner.png")}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -207,10 +219,9 @@ const styles = StyleSheet.create({
     elevation: 15,
   },
   logo: {
-    width: width * 0.8,
-    height: height * 0.25,
+    width: width * 1.3,
+    height: height * 0.35,
   },
-  // Updated text container styling from Code 1
   textContainer: {
     position: "absolute",
     bottom: Platform.OS === "ios" ? 80 : 60,
@@ -218,7 +229,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     width: "100%",
   },
-  // Updated app name text styling from Code 1
   appNameText: {
     fontSize: 32,
     color: "#FFFFFF",

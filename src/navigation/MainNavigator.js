@@ -1,8 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import * as Font from "expo-font";
-import * as SplashScreen from 'expo-splash-screen';
-import { View } from 'react-native';
 import AuthNavigator from "./AuthNavigator";
 import Homepage from "../screens/Homepage";
 import ScanResult from "../screens/ScanResult";
@@ -15,87 +13,84 @@ import ScannerDev from "../screens/ScannerDev";
 import SessionDetails from "../screens/SessionDetails";
 import ViewEventDetails from "../screens/ViewEventDetails";
 import { useAuthContext } from "../context/AuthContext";
-
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+import { View } from 'react-native';
 
 const Stack = createStackNavigator();
 
+// Preload fonts before importing components
+async function preloadFonts() {
+  try {
+    console.log("Preloading fonts...");
+    await Font.loadAsync({
+      "Poppins": require("../../assets/fonts/Poppins-Regular.ttf"),
+      "Poppins-Bold": require("../../assets/fonts/Poppins-Bold.ttf"),
+      "Poppins-SemiBold": require("../../assets/fonts/Poppins-SemiBold.ttf"),
+      "Poppins-Medium": require("../../assets/fonts/Poppins-Medium.ttf"),
+    });
+    console.log("Fonts preloaded successfully.");
+  } catch (e) {
+    console.warn("Font preloading error:", e);
+  }
+}
+
+// Start font preloading immediately
+preloadFonts();
+
 export default function MainNavigator() {
   const { fetchUser, user, loading } = useAuthContext();
-  const [appIsReady, setAppIsReady] = useState(false);
-  const [splashAnimationFinished, setSplashAnimationFinished] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    async function prepare() {
+    const initializeApp = async () => {
       try {
-        // Pre-load fonts
-        await Font.loadAsync({
-          "Poppins": require("../../assets/fonts/Poppins-Regular.ttf"),
-          "Poppins-Bold": require("../../assets/fonts/Poppins-Bold.ttf"),
-          "Poppins-SemiBold": require("../../assets/fonts/Poppins-SemiBold.ttf"),
-          "Poppins-Medium": require("../../assets/fonts/Poppins-Medium.ttf"),
-        });
-
-        // Fetch initial user data
-        await fetchUser();
-
+        // Fetch user data in parallel with splash display
+        fetchUser();
       } catch (e) {
-        console.warn("App preparation error:", e);
-      } finally {
-        // Tell the application to render
-        setAppIsReady(true);
+        console.warn("App initialization error:", e);
       }
-    }
+    };
 
-    prepare();
+    initializeApp();
+
+    // Show splash screen for fixed duration
+    console.log("Starting splash timer for 3 seconds.");
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000);
+
+    return () => clearTimeout(splashTimer);
   }, []);
 
-  const onLayoutRootView = useCallback(async () => {
-    if (appIsReady) {
-      // Hide the native splash screen when the RN view has laid out
-      await SplashScreen.hideAsync();
-    }
-  }, [appIsReady]);
-
-  if (!appIsReady) {
-    // Native splash screen is still visible via preventAutoHideAsync
-    return null;
+  if (showSplash) {
+    console.log("Displaying SplashScreen.");
+    return <SplashScreenComponent />;
   }
 
+  console.log("Rendering Main Navigator.");
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      {!splashAnimationFinished ? (
-        // Show your custom splash screen first
-        <SplashScreenComponent 
-          onAnimationComplete={() => setSplashAnimationFinished(true)} 
-        />
+    <Stack.Navigator
+      screenOptions={{ headerShown: false, gestureEnabled: false }}
+    >
+      {loading ? (
+        <Stack.Screen name="LoadingPlaceholder">
+          {() => <View style={{flex: 1, backgroundColor: '#000B19'}} />}
+        </Stack.Screen>
+      ) : !user ? (
+        <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
       ) : (
-        <Stack.Navigator
-          screenOptions={{ headerShown: false, gestureEnabled: false }}
-        >
-          {loading ? (
-            <Stack.Screen name="LoadingPlaceholder">
-              {() => <View style={{flex: 1, backgroundColor: '#000B19'}} />}
-            </Stack.Screen>
-          ) : !user ? (
-            <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
-          ) : (
-            <>
-              <Stack.Screen name="Homepage" component={Homepage} />
-              <Stack.Screen name="Scanner" component={ScannerDev} />
-              {/* Production scanner is under */}
-              {/* <Stack.Screen name="Scanner" component={ScannerProd} /> */}
-              <Stack.Screen name="ScanResult" component={ScanResult} />
-              <Stack.Screen name="Events" component={Events} />
-              <Stack.Screen name="Participants" component={Participants} />
-              <Stack.Screen name="EventSession" component={EventSession} />
-              <Stack.Screen name="SessionDetails" component={SessionDetails} />
-              <Stack.Screen name="ViewEventDetails" component={ViewEventDetails} />
-            </>
-          )}
-        </Stack.Navigator>
+        <>
+          <Stack.Screen name="Homepage" component={Homepage} />
+          <Stack.Screen name="Scanner" component={ScannerDev} />
+          {/* Production scanner is under */}
+          {/* <Stack.Screen name="Scanner" component={ScannerProd} /> */}
+          <Stack.Screen name="ScanResult" component={ScanResult} />
+          <Stack.Screen name="Events" component={Events} />
+          <Stack.Screen name="Participants" component={Participants} />
+          <Stack.Screen name="EventSession" component={EventSession} />
+          <Stack.Screen name="SessionDetails" component={SessionDetails} />
+          <Stack.Screen name="ViewEventDetails" component={ViewEventDetails} />
+        </>
       )}
-    </View>
+    </Stack.Navigator>
   );
 }

@@ -34,7 +34,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/Bweb.png",
+        "foregroundImage": "./assets/BwebPartner.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
