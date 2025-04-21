@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "BwebEscan",
+    "name": "Bweb Partners",
     "slug": "eventPartner_app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "light",
@@ -26,8 +26,7 @@
         "family": "Poppins-SemiBold"
       }
     ],
-    "splash": {
-    },
+    "splash": {},
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wa2goose.ExpoQR2"
@@ -61,7 +60,13 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-barcode-scanner"
+      "expo-barcode-scanner",
+      [
+        "expo-splash-screen",
+        {
+          "enabled": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

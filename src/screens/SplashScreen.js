@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -34,6 +34,7 @@ export default function SplashScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
+  const [fontLoaded, setFontLoaded] = useState(false);
 
   const stars = useRef(
     [...Array(PARTICLE_COUNT)].map(() => {
@@ -44,7 +45,7 @@ export default function SplashScreen() {
       return {
         opacity: new Animated.Value(Math.random()),
         left: Math.random() * width,
-        top: Math.random() * height * 0.8,
+        top: Math.random() * height,
         size: config.size,
         color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
         twinkleSpeed: config.twinkleSpeed + Math.random() * 500,
@@ -56,15 +57,17 @@ export default function SplashScreen() {
   useEffect(() => {
     // Load fonts directly in the splash screen component
     async function loadFonts() {
-      if (!Font.isLoaded('Poppins-SemiBold')) {
-        try {
+      try {
+        if (!Font.isLoaded('Poppins-SemiBold')) {
           await Font.loadAsync({
             'Poppins-SemiBold': require('../../assets/fonts/Poppins-SemiBold.ttf'),
           });
-          console.log('Splash screen - Font loaded successfully');
-        } catch (e) {
-          console.error('Error loading font in splash screen:', e);
         }
+        setFontLoaded(true);
+        console.log('Splash screen - Font loaded successfully');
+      } catch (e) {
+        console.error('Error loading font in splash screen:', e);
+        setFontLoaded(true); // Continue with default font
       }
     }
     
@@ -85,6 +88,7 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
+      Animated.delay(300), // Added a slight delay before text animation
       Animated.parallel([
         Animated.timing(slideUpAnim, {
           toValue: 0,
@@ -169,7 +173,7 @@ export default function SplashScreen() {
           />
         </Animated.View>
 
-        <Animated.View
+        {/* <Animated.View
           style={[
             styles.textContainer,
             {
@@ -178,10 +182,20 @@ export default function SplashScreen() {
             },
           ]}
         >
-          <Text style={styles.appNameText} includeFontPadding={false}>
-            BwebEScan
-          </Text>
-        </Animated.View>
+          <View style={styles.textWrapper}>
+            <Text 
+              style={[
+                styles.appNameText, 
+                !fontLoaded && styles.fallbackFont
+              ]} 
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              BwebEScan
+            </Text>
+          </View>
+        </Animated.View> */}
       </LinearGradient>
     </View>
   );
@@ -190,6 +204,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000B19', // Fallback color
   },
   gradient: {
     flex: 1,
@@ -224,20 +239,34 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 80 : 60,
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: "center",
     paddingHorizontal: 20,
-    width: "100%",
+    paddingBottom: Platform.OS === "ios" ? 50 : 40,
+  },
+  textWrapper: {
+    backgroundColor: 'transparent',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    minWidth: width * 0.7,
+    alignItems: 'center',
   },
   appNameText: {
     fontSize: 32,
     color: "#FFFFFF",
     fontFamily: "Poppins-SemiBold",
     letterSpacing: 2,
-    paddingBottom: 5,
+    lineHeight: 40,
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
     textAlign: "center",
+    fontWeight: "600",
+  },
+  fallbackFont: {
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    fontWeight: "bold",
   },
 });

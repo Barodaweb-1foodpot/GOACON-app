@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext, useAuthContext } from "../context/AuthContext";
@@ -47,9 +48,12 @@ export default function Homepage() {
 
       {/* Header Section */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greetingText}>Welcome,</Text>
-          <Text style={styles.userName}>{user?.name || 'Admin'}</Text>
+        <View style={styles.imageContainer}>
+          <Image 
+            source={require('../../assets/BwebPartner.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
         <TouchableOpacity style={styles.profileIcon} onPress={handleLogout}>
           <Icon name="logout" size={24} color="#fff" />
@@ -104,16 +108,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
   },
-  greetingText: {
-    fontSize: 18,
-    fontFamily: "Poppins-Regular",
-    color: "#FFFFFF",
-    opacity: 0.7,
+  imageContainer: {
+    height: 90,
+    width: 100,
   },
-  userName: {
-    fontSize: 24,
-    fontFamily: "Poppins-Bold",
-    color: "#FFFFFF",
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   profileIcon: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",

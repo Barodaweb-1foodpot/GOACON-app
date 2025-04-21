@@ -311,17 +311,36 @@ export default function ViewEventDetails() {
                     <Text style={styles.sessionName}>
                       {session.sessionName}
                     </Text>
-                    {/* <View style={styles.sessionTimeContainer}>
-                      <Icon name="event" size={16} color="#FFFFFF" style={styles.sessionIcon} />
-                      <Text style={styles.sessionTime}>
-                        {new Date(session.startTime).toLocaleDateString()} {" "}
-                        {new Date(session.startTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Text>
-                    </View> */}
+                    <View style={styles.sessionDetails}>
+                      <View style={styles.sessionTimeContainer}>
+                        <Icon name="event" size={16} color="#FFFFFF" style={styles.sessionIcon} />
+                        <Text style={styles.sessionTime}>
+                          {new Date(session.startTime).toLocaleDateString()} {" "}
+                          {new Date(session.startTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          {" - "}
+                          {new Date(session.endTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Text>
+                      </View>
+                      <View style={styles.sessionLocationContainer}>
+                        <Icon name="location-on" size={16} color="#FFFFFF" style={styles.sessionIcon} />
+                        <Text style={styles.sessionLocation}>
+                          {session.sessionLocation}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
+                  <TouchableOpacity 
+                    onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(session.sessionLocation)}`)}
+                    style={styles.mapIconContainer}
+                  >
+                    <Icon name="map" size={24} color="#4CAF50" />
+                  </TouchableOpacity>
                 </View>
               ))
             ) : (
@@ -491,9 +510,16 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     marginBottom: 8,
   },
+  sessionDetails: {
+    gap: 8,
+  },
   sessionTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  sessionLocationContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   sessionIcon: {
     marginRight: 6,
@@ -504,12 +530,17 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontFamily: "Poppins-Regular",
     opacity: 0.8,
+    flex: 1,
   },
-  sessionDuration: {
+  sessionLocation: {
     fontSize: 14,
     color: "#FFFFFF",
-    opacity: 0.7,
     fontFamily: "Poppins-Regular",
+    opacity: 0.8,
+    flex: 1,
+  },
+  mapIconContainer: {
+    padding: 8,
   },
   noContent: {
     fontSize: 16,
@@ -519,8 +550,8 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   actionsContainer: {
-    // position: "absolute",
-    bottom: 50,
+    position: "absolute",
+    bottom: 7,
     left: 0,
     right: 0,
     flexDirection: "row",
