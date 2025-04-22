@@ -34,11 +34,14 @@ import logo from "../../assets/bweb-partner.png";
 
 export default function LoginPage() {
   const [localUserType, setLocalUserType] = useState("eventPartner");
+  // Commented out event user related states
+  /* 
   const [eventPartners, setEventPartners] = useState([]);
   const [eventPartnersOpen, setEventPartnersOpen] = useState(false);
+  */
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  // const [showPartnerModal, setShowPartnerModal] = useState(false);
   const { setUser, setSelectedEventPartner, setUserType } = useAuthContext();
   const formikRef = useRef(null);
 
@@ -49,22 +52,28 @@ export default function LoginPage() {
     password: Yup.string()
       .min(6, "Password must be at least 6 characters")
       .required("Password is required"),
+    // Commented out event partner validation
+    /*
     eventPartner:
       localUserType === "eventUser"
         ? Yup.string().required("Event Partner is required")
         : Yup.string(),
+    */
   });
 
   useEffect(() => {
+    /* 
     if (localUserType === "eventUser") {
       fetchPartners();
     }
+    */
     if (formikRef.current) {
       formikRef.current.resetForm();
     }
     setServerError("");
   }, [localUserType]);
 
+  /* 
   const fetchPartners = async () => {
     try {
       const data = await fetchEventPartners();
@@ -77,23 +86,26 @@ export default function LoginPage() {
       console.error("Error fetching event partners:", error);
     }
   };
+  */
 
   const handleLogin = async (values, { setSubmitting }) => {
     setServerError("");
     try {
-      if (localUserType === "eventPartner") {
-        const response = await eventPartnerLogin(values.email, values.password);
-        if (response.isOk) {
-          await AsyncStorage.setItem("_id", response.data.eventPartner._id);
-          await AsyncStorage.setItem("role", "eventPartner");
-          setUser(response.data.eventPartner._id);
-          setSelectedEventPartner(response.data.eventPartner._id);
-          await AsyncStorage.setItem("token", response.data.token);
-          setUserType("eventPartner");
-        } else {
-          setServerError("Invalid email or password");
-        }
+      // Only keep event partner login logic
+      const response = await eventPartnerLogin(values.email, values.password);
+      if (response.isOk) {
+        await AsyncStorage.setItem("_id", response.data.eventPartner._id);
+        await AsyncStorage.setItem("role", "eventPartner");
+        setUser(response.data.eventPartner._id);
+        setSelectedEventPartner(response.data.eventPartner._id);
+        await AsyncStorage.setItem("token", response.data.token);
+        setUserType("eventPartner");
       } else {
+        setServerError("Invalid email or password");
+      }
+      
+      /* Event user login logic commented out
+      else {
         const response = await eventUserLogin(
           values.email,
           values.password,
@@ -110,6 +122,7 @@ export default function LoginPage() {
           setServerError("Invalid email or password");
         }
       }
+      */
     } catch (err) {
       console.error("Login error:", err);
       setServerError("Login failed. Please try again.");
@@ -141,6 +154,7 @@ export default function LoginPage() {
           <View style={styles.formContainer}>
             <Text style={styles.welcomeText}>Welcome Back.</Text>
 
+            {/* Radio button section commented out
             <View style={styles.radioContainer}>
               <TouchableOpacity
                 style={styles.radioButton}
@@ -168,6 +182,7 @@ export default function LoginPage() {
                 <Text style={styles.radioText}>Event User</Text>
               </TouchableOpacity>
             </View>
+            */}
             
             <ScrollView 
               style={styles.scrollableContent} 
@@ -179,7 +194,7 @@ export default function LoginPage() {
                 initialValues={{
                   email: "",
                   password: "",
-                  eventPartner: "",
+                  // eventPartner: "",
                 }}
                 validationSchema={loginValidationSchema}
                 onSubmit={handleLogin}
@@ -243,6 +258,7 @@ export default function LoginPage() {
                       )}
                     </View>
 
+                    {/* Event user dropdown section commented out
                     {localUserType === "eventUser" && (
                       <View style={styles.dropdownContainer}>
                         <Text style={styles.label}>
@@ -270,7 +286,6 @@ export default function LoginPage() {
                           <Text style={styles.errorText}>{errors.eventPartner}</Text>
                         )}
                         
-                        {/* Event Partner Selection Modal */}
                         <Modal visible={showPartnerModal} transparent animationType="fade">
                           <View style={styles.modalOverlay}>
                             <View style={styles.modalContainer}>
@@ -318,6 +333,7 @@ export default function LoginPage() {
                         </Modal>
                       </View>
                     )}
+                    */}
 
                     {serverError ? (
                       <Text style={styles.serverErrorText}>{serverError}</Text>
