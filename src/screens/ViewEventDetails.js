@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
-    padding: 10,
+    padding: 15,
     // backgroundColor: "rgba(0, 11, 25, 0.9)",
   },
   shareButton: {
