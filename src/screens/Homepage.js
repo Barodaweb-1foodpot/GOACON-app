@@ -13,12 +13,14 @@ import { AuthContext, useAuthContext } from "../context/AuthContext";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import Constants from "expo-constants";
 
 
 export default function Homepage() {
   const navigation = useNavigation();
   const { logout } = useContext(AuthContext);
   const { user } = useAuthContext();
+  const appVersion = Constants.expoConfig.version;
 
   const handleLogout = () => {
     logout();
@@ -89,6 +91,11 @@ export default function Homepage() {
           onPress={() => navigation.navigate("Scanner")}
         />
       </View>
+      
+      {/* Footer with Version */}
+      <View style={styles.footer}>
+        <Text style={styles.versionText}>Version {appVersion}</Text>
+      </View>
     </LinearGradient>
   );
 }
@@ -151,5 +158,17 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
     textAlign: "center",
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    width: '100%',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  versionText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
   },
 });

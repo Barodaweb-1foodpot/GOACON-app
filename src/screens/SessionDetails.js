@@ -224,6 +224,10 @@ export default function SessionDetails() {
       setSessionValue(null);
     } else {
       setSessionValue(sessionId);
+      // Reset counts before loading new data
+      setTotalParticipants(0);
+      setScannedParticipants(0);
+      setNotScannedParticipants(0);
     }
   };
 
@@ -361,6 +365,7 @@ export default function SessionDetails() {
                     title="Total Sessions"
                     count={totalSessions}
                     color="#1A5276"
+                    loading={loadingSessions}
                   />
                 ) : (
                   // Display participant counts
@@ -369,16 +374,19 @@ export default function SessionDetails() {
                       title="Total"
                       count={totalParticipants}
                       color="#1A5276"
+                      loading={loadingParticipants}
                     />
                     <CountCard
                       title="Scanned"
                       count={scannedParticipants}
                       color="#4CAF50"
+                      loading={loadingParticipants}
                     />
                     <CountCard
                       title="Not Scan"
                       count={notScannedParticipants}
                       color="#FFA000"
+                      loading={loadingParticipants}
                     />
                   </>
                 )}
@@ -484,10 +492,14 @@ export default function SessionDetails() {
   );
 }
 
-const CountCard = React.memo(({ title, count, color }) => (
+const CountCard = React.memo(({ title, count, color, loading }) => (
   <View style={[styles.countCard, { backgroundColor: color }]}>
     <Text style={styles.countTitle}>{title}</Text>
-    <Text style={styles.countNumber}>{count}</Text>
+    {loading ? (
+      <ActivityIndicator size="small" color="#FFFFFF" />
+    ) : (
+      <Text style={styles.countNumber}>{count}</Text>
+    )}
   </View>
 ));
 

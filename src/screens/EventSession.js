@@ -42,10 +42,24 @@ export default function EventSession({ route, navigation }) {
   const fetchDetails = async () => {
     try {
       setIsLoading(true);
-      console.log("pppp", participant);
-      const data = await fetchParticipantDetail(participant._id);
-      setEventDetails(data.data);
-      setSessionDetail(data.sessiondata);
+      console.log("Participant ID:", participant._id);
+      const response = await fetchParticipantDetail(participant._id);
+      console.log("API Response:", JSON.stringify(response, null, 2));
+      
+      if (response && response.data) {
+        setEventDetails(response.data);
+        // Check if sessiondata exists in the response
+        if (response.data.sessiondata) {
+          console.log("Session data found:", response.data.sessiondata.length);
+          setSessionDetail(response.data.sessiondata || []);
+        } else {
+          console.warn("No session data found in the API response");
+          setSessionDetail([]);
+        }
+      } else {
+        console.error("Invalid API response format:", response);
+        setSessionDetail([]);
+      }
     } catch (error) {
       console.error("Failed to fetch session details:", error);
       Toast.show({
@@ -170,24 +184,28 @@ export default function EventSession({ route, navigation }) {
         const sessionEnd = session.endTime;
 
         // ✅ Check if participant has scanned this session
-        const isScanned = eventDetails?.sessionScan?.some(
-          (scan) =>
-            scan.exhibitionSessionId?.toString() === session._id?.toString()
-        );
+        // A session is only considered fully scanned when remainingScan is 0
+        const isScanned = session.remainingScan === 0;
 
         // Check if session is currently active (within time window)
         const isActive = isSessionWithinTimeWindow(sessionStart, sessionEnd);
 
-        const sessionStatus = eventDetails?.remainingScan == 0
+        // Get remaining scans for this specific session
+        const remainingScans = session.remainingScan || 0;
+
+        // Simplify status to just three states
+        const sessionStatus = isScanned
           ? "Scanned"
           : isActive
             ? "Active"
             : "Upcoming";
-        const statusColor = eventDetails?.remainingScan == 0
-          ? "#4CAF50"
+
+        // Just three colors for status
+        const statusColor = isScanned
+          ? "#4CAF50"  // Green for scanned
           : isActive
-            ? "#FFA000"
-            : "#9E9E9E";
+            ? "#FFA000"  // Orange for active (regardless of partial scan)
+            : "#9E9E9E";  // Grey for upcoming
 
         return (
           <View
@@ -223,17 +241,17 @@ export default function EventSession({ route, navigation }) {
                   <TouchableOpacity
                     style={[
                       styles.sessionButton,
-                      eventDetails?.remainingScan == 0 && styles.scannedButton,
-                      !isActive && !eventDetails?.remainingScan == 0 && styles.unavailableButton,
+                      isScanned && styles.scannedButton,
+                      !isActive && styles.unavailableButton,
                     ]}
                     onPress={() =>
                       handleSessionScan(session._id)
                     }
-                    disabled={eventDetails?.remainingScan === 0 || !isActive}
+                    disabled={isScanned || !isActive}
                   >
                     <LinearGradient
                       colors={
-                        eventDetails?.remainingScan == 0
+                        isScanned
                           ? ["#4CAF50", "#2E7D32"]
                           : !isActive
                             ? ["#9E9E9E", "#757575"]
@@ -242,11 +260,13 @@ export default function EventSession({ route, navigation }) {
                       style={styles.buttonGradient}
                     >
                       <Text style={styles.buttonText}>
-                        {eventDetails?.remainingScan == 0
+                        {isScanned
                           ? "Scanned ✓"
                           : !isActive
                             ? "Not Available"
-                            : `Enter Session (${eventDetails?.remainingScan})`} 
+                            : remainingScans !== undefined
+                              ? `Enter Session (${remainingScans})`
+                              : "Enter Session"} 
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -530,5 +550,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
+  },
+  scannedButton: {
+    backgroundColor: "#4CAF50",
+  },
+  unavailableButton: {
+    backgroundColor: "#9E9E9E",
   },
 });
