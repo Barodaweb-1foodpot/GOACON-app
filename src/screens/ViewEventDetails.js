@@ -273,7 +273,12 @@ export default function ViewEventDetails() {
 
           {/* About Event */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About Event</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>About Event</Text>
+              <TouchableOpacity style={styles.headerShareButton} onPress={handleShare}>
+                <Icon name="share" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
             <View style={styles.contentCard}>
               <Text style={styles.description}>
                 {event.description
@@ -350,22 +355,6 @@ export default function ViewEventDetails() {
         </Animated.View>
       </ScrollView>
 
-      {/* Action Buttons */}
-      <Animated.View
-        style={[
-          styles.actionsContainer,
-          {
-            // opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Icon name="share" size={20} color="#FFFFFF" />
-          <Text style={styles.buttonText}>Share Event</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
       <Toast />
     </LinearGradient>
   );
@@ -382,7 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 20 : 48,
+    paddingTop: Platform.OS === "android" ? 35 : 48,
     paddingBottom: 15,
   },
   backButton: {
@@ -549,41 +538,15 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     fontStyle: "italic",
   },
-  actionsContainer: {
-    position: "absolute",
-    bottom: 40,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    padding: 25,
-    // backgroundColor: "rgba(0, 11, 25, 0.9)",
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
   },
-  shareButton: {
-    backgroundColor: "#4CAF50",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    height: 60,
-    borderRadius: 30,
-    width: '60%',
-    elevation: 8,
-  },
-  registerButton: {
-    backgroundColor: "#2196F3",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    borderRadius: 20,
-    flex: 0.48,
-    elevation: 8,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "Poppins-Medium",
-    marginLeft: 10,
+  headerShareButton: {
+    backgroundColor: "rgba(76, 175, 80, 0.8)",
+    borderRadius: 50,
+    padding: 10,
   },
 });

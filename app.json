@@ -33,7 +33,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/BwebPartner.png",
+        "foregroundImage": "./assets/Bweb-removebg.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [

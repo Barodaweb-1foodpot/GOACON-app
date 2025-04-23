@@ -37,6 +37,7 @@ export default function ScanResult({ route }) {
   const [processingSession, setProcessingSession] = useState(null);
   const [showSessions, setShowSessions] = useState(false);
   const [participantData, setParticipantData] = useState("");
+  const [invalidQR, setInvalidQR] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -48,15 +49,19 @@ export default function ScanResult({ route }) {
       } catch (error) {
         console.error("=== ScanResult: Error Processing Initial Data ===");
         console.error(error);
-        Toast.show({
-          type: "error",
-          text1: "Invalid QR Code",
-          text2: "The scanned QR code is not valid or cannot be processed.",
-        });
-        setIsLoading(false);
+        handleInvalidQR("The scanned QR code is not valid or cannot be processed.");
       }
     }
   }, [data]);
+
+  // Handle invalid QR case with better UX
+  const handleInvalidQR = (message) => {
+    setInvalidQR(true);
+    setIsLoading(false);
+    
+    // Remove Toast notification
+    // Keep only the UI feedback through the invalidQR state
+  };
 
   useEffect(() => {
     if (participantData?.data?._id && eventDetails?._id) {
@@ -80,12 +85,13 @@ export default function ScanResult({ route }) {
       if (!fetchedData || !fetchedData.data) {
         console.error("=== ScanResult: Invalid API Response ===");
         console.error("Response:", fetchedData);
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "No participant found with the provided identifier.",
-        });
-        setIsLoading(false);
+        handleInvalidQR("No participant found with the provided identifier.");
+        return;
+      }
+
+      // Check if participant has a valid name
+      if (!fetchedData.data.firstName && !fetchedData.data.lastName) {
+        handleInvalidQR("Participant information is incomplete.");
         return;
       }
 
@@ -117,24 +123,18 @@ export default function ScanResult({ route }) {
         }
       } else {
         console.warn("=== ScanResult: No Exhibition Data Found ===");
-        Toast.show({
-          type: "warning",
-          text1: "Warning",
-          text2: "No event data found for this participant.",
-        });
+        handleInvalidQR("No event data found for this participant.");
+        return;
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error("=== ScanResult: Error in fetchDetails ===");
       console.error(error);
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2:
-          error.message ||
-          "Failed to fetch participant details. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
+      handleInvalidQR(
+        error.message ||
+        "Failed to fetch participant details. Please try again."
+      );
     }
   };
 
@@ -538,6 +538,18 @@ export default function ScanResult({ route }) {
             <ActivityIndicator size="large" color="#FFFFFF" />
             <Text style={styles.loadingText}>Loading Details...</Text>
           </View>
+        ) : invalidQR ? (
+          <View style={styles.invalidQRContainer}>
+            <Icon name="error-outline" size={80} color="#FFA000" />
+            <Text style={styles.invalidQRText}>Invalid QR Code</Text>
+            <Text style={styles.invalidQRSubtext}>Please try scanning a valid QR code</Text>
+            <TouchableOpacity
+              style={styles.scanAgainButton}
+              onPress={() => navigation.navigate("Scanner")}
+            >
+              <Text style={styles.scanAgainButtonText}>Scan Again</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
             <ScrollView style={styles.scrollView} bounces={false}>
@@ -910,5 +922,35 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
+  },
+  invalidQRContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  invalidQRText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 20,
+  },
+  invalidQRSubtext: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  scanAgainButton: {
+    backgroundColor: '#0E7AFE',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginTop: 30,
+  },
+  scanAgainButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
