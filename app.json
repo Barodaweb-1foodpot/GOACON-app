@@ -2,11 +2,11 @@
   "expo": {
     "name": "Bweb Partners",
     "slug": "eventPartner_app",
-    "version": "0.0.4",
+    "version": "0.0.3",
     "orientation": "portrait",
-    "icon": "./assets/app_icon.png",
+    "icon": "./assets/Bweb-removebg.png",
     "userInterfaceStyle": "light",
-    "backgroundColor":"#000",
+    "backgroundColor": "#000",
     "newArchEnabled": true,
     "fonts": [
       {
@@ -29,7 +29,10 @@
     "splash": {},
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wa2goose.ExpoQR2"
+      "bundleIdentifier": "com.barodaweb.BwebEscan",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,7 +43,7 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.wa2goose.ExpoQR2",
+      "package": "com.barodaweb.BwebEscan",
       "config": {
         "usesPermissionsFlags": {
           "camera": true
@@ -60,7 +63,6 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-barcode-scanner",
       [
         "expo-splash-screen",
         {
