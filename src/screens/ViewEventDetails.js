@@ -551,12 +551,12 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     position: "absolute",
-    bottom: 7,
+    bottom: 40,
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
-    padding: 15,
+    padding: 25,
     // backgroundColor: "rgba(0, 11, 25, 0.9)",
   },
   shareButton: {
@@ -565,8 +565,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 15,
-    borderRadius: 20,
-    flex: 0.48,
+    height: 60,
+    borderRadius: 30,
+    width: '60%',
     elevation: 8,
   },
   registerButton: {
@@ -581,8 +582,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "Poppins-Medium",
-    marginLeft: 8,
+    marginLeft: 10,
   },
 });
