@@ -70,6 +70,9 @@ export default function ScannerDev() {
           console.log('=== Scanner: No Email Found in vCard ===');
         }
       } 
+      else if(data.data){
+        scanData = data.raw;
+      }
 
       console.log('=== Scanner: Final Data Being Passed ===');
       console.log(scanData);

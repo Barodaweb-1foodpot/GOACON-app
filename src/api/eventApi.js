@@ -186,7 +186,7 @@ export const fetchParticipantDetail = async (data) => {
     return res.data;
   } catch (error) {
     console.error('=== API: Error in fetchParticipantDetail ===');
-    if (error.response) {
+    if (error.response) { 
       console.error('Response Error:', {
         status: error.response.status,
         data: error.response.data,
@@ -209,7 +209,7 @@ export const fetchParticipantDetail = async (data) => {
     Toast.show({
       type: "error",
       text1: "Error",
-      text2: errorMessage,
+      text2: "Participant not found",
     });
     
     throw error;

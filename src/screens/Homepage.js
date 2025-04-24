@@ -94,7 +94,7 @@ export default function Homepage() {
       
       {/* Footer with Version */}
       <View style={styles.footer}>
-        <Text style={styles.versionText}>Version {appVersion}</Text>
+        <Text style={styles.versionText}>v {appVersion}</Text>
       </View>
     </LinearGradient>
   );
