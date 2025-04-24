@@ -41,12 +41,19 @@ export const eventPartnerLogin = async (email, password) => {
       }
     );
     console.log("Event Partner login response:", response.data);
-
-    Toast.show({
-      type: "success",
-      text1: "Login Successful",
-      text2: "Welcome back, Event Partner!",
-    });
+    if(response.data.isOk){
+      Toast.show({
+        type: "success",
+        text1: "Login Successful",
+        text2: "Welcome back, Event Partner!",
+      });
+    }else{
+      Toast.show({
+        type: "error",
+        text1: "Login Failed",
+        text2: "Invalid email or password.",
+      });
+    }
 
     return response.data;
   } catch (error) {

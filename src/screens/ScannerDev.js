@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
+  Platform,
 } from "react-native";
 import {
   CameraView,
@@ -34,9 +35,69 @@ export default function ScannerDev() {
   }, [permission, requestPermission]);
 
   // Handle successful barcode/QR scans
-  const handleBarCodeScanned = async ({ data }) => {
+  const handleBarCodeScanned = async (data ) => {
     const now = Date.now();
     // Avoid multiple scans within 2s & while navigating
+    if (isNavigating || scanned || now - lastScanRef.current < 2000) {
+      return;
+    }
+
+    setScanned(true);
+    setIsNavigating(true);
+    lastScanRef.current = now;
+
+    try {
+      // Subtle haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Parse the scanned data
+      let scanData = data;
+      console.log('=== Scanner: Raw QR Data ===');
+      console.log(data);
+      
+      // Check if it's a vCard format (begins with BEGIN:VCARD)
+      if (data.raw.includes("BEGIN:VCARD")) {
+        console.log('=== Scanner: vCard Format Detected ===');
+        
+        // Extract email from vCard format
+        const emailMatch = data.raw.match(/EMAIL[^:]*:(.*?)(?:\r?\n|$)/i);
+        if (emailMatch && emailMatch[1]) {
+          // Clean the email (remove any trailing characters)
+          scanData = emailMatch[1].trim().toLowerCase();
+          console.log('=== Scanner: Extracted Email ===');
+          console.log(scanData);
+        } else {
+          console.log('=== Scanner: No Email Found in vCard ===');
+        }
+      } 
+
+      console.log('=== Scanner: Final Data Being Passed ===');
+      console.log(scanData);
+
+      Alert.alert(
+        "QR Code Scanned", 
+        `Data: ${scanData}`, 
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              console.log('=== Scanner: Navigating to ScanResult with data ===');
+              console.log(scanData);
+              navigation.navigate("ScanResult", { data: scanData });
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("=== Scanner: Error Processing Scan ===");
+      console.error(error);
+      setScanned(false);
+      setIsNavigating(false);
+    }
+  };
+
+  const handleBarCodeScannedIOS = async ({data} ) => {
+    const now = Date.now();
     if (isNavigating || scanned || now - lastScanRef.current < 2000) {
       return;
     }
@@ -68,18 +129,7 @@ export default function ScannerDev() {
         } else {
           console.log('=== Scanner: No Email Found in vCard ===');
         }
-      } else {
-        // Check if it's a valid email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (emailRegex.test(data)) {
-          scanData = data.toLowerCase(); // Normalize email to lowercase
-          console.log('=== Scanner: Direct Email Format ===');
-          console.log(scanData);
-        } else {
-          console.log('=== Scanner: Non-Email Format (possibly ID) ===');
-          console.log(scanData);
-        }
-      }
+      } 
 
       console.log('=== Scanner: Final Data Being Passed ===');
       console.log(scanData);
@@ -145,7 +195,7 @@ export default function ScannerDev() {
         style={StyleSheet.absoluteFillObject}
         facing={facing} // "back" or "front"
         onBarcodeScanned={
-          !scanned && !isNavigating ? handleBarCodeScanned : undefined
+          !scanned && !isNavigating ? Platform.OS === "android" ? handleBarCodeScanned : handleBarCodeScannedIOS : undefined
         }
         // Restrict scanning to QR codes only
         barcodeScannerSettings={{
