@@ -38,6 +38,7 @@ export default function ScanResult({ route }) {
   const [showSessions, setShowSessions] = useState(false);
   const [participantData, setParticipantData] = useState("");
   const [invalidQR, setInvalidQR] = useState(false);
+  const [registrationScanTime, setRegistrationScanTime] = useState(null);
 
   useEffect(() => {
     if (data) {
@@ -49,7 +50,9 @@ export default function ScanResult({ route }) {
       } catch (error) {
         console.error("=== ScanResult: Error Processing Initial Data ===");
         console.error(error);
-        handleInvalidQR("The scanned QR code is not valid or cannot be processed.");
+        handleInvalidQR(
+          "The scanned QR code is not valid or cannot be processed."
+        );
       }
     }
   }, [data]);
@@ -58,7 +61,7 @@ export default function ScanResult({ route }) {
   const handleInvalidQR = (message) => {
     setInvalidQR(true);
     setIsLoading(false);
-    
+
     // Remove Toast notification
     // Keep only the UI feedback through the invalidQR state
   };
@@ -126,14 +129,14 @@ export default function ScanResult({ route }) {
         handleInvalidQR("No event data found for this participant.");
         return;
       }
-      
+
       setIsLoading(false);
     } catch (error) {
       console.error("=== ScanResult: Error in fetchDetails ===");
       console.error(error);
       handleInvalidQR(
         error.message ||
-        "Failed to fetch participant details. Please try again."
+          "Failed to fetch participant details. Please try again."
       );
     }
   };
@@ -159,6 +162,7 @@ export default function ScanResult({ route }) {
 
       if (res.isOk) {
         fetchExhibitionSession(res.data.exhibitionId);
+        setRegistrationScanTime(res.data.createdAt);
       }
 
       // Update local participant data: set registrationScan on the nested data object
@@ -336,12 +340,25 @@ export default function ScanResult({ route }) {
           <Text style={styles.infoText}>{eventDetails?.address || "N/A"}</Text>
         </View>
 
-        <View style={styles.infoItem}>
-          <Icon name="event" size={20} color="#FFFFFF" />
-          <Text style={styles.infoText}>
-            {`Registered: ${formatFullDateTime(eventDetails?.createdAt)}`}
-          </Text>
-        </View>
+        {participantData?.data?.registrationScan?.createdAt && (
+          <View style={styles.infoItem}>
+            <Icon name="event" size={20} color="#FFFFFF" />
+            <Text style={styles.infoText}>
+              {`Entered at : ${formatFullDateTime(
+                participantData?.data?.registrationScan?.createdAt
+              )}`}
+            </Text>
+          </View>
+        )}
+
+        {registrationScanTime && (
+          <View style={styles.infoItem}>
+            <Icon name="event" size={20} color="#FFFFFF" />
+            <Text style={styles.infoText}>
+              {`Entered at : ${formatFullDateTime(registrationScanTime)}`}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -389,16 +406,17 @@ export default function ScanResult({ route }) {
               sessionStart,
               sessionEnd
             );
-            
-            
+
             // Find matching session in participant data by session ID
             const participantSession = participantData?.data?.sessiondata?.find(
               (s) => s._id === session._id
             );
-            
+
             // Get remaining scans for this specific session
-            const remainingScans = participantSession ? participantSession.remainingScan : 0;
-            
+            const remainingScans = participantSession
+              ? participantSession.remainingScan
+              : 0;
+
             // Check if this specific session is already scanned (remaining scans = 0)
             const isSessionScanned = remainingScans === 0;
 
@@ -407,7 +425,7 @@ export default function ScanResult({ route }) {
               : isAvailable
                 ? "Active"
                 : "Upcoming";
-                
+
             const statusColor = isSessionScanned
               ? "#4CAF50"
               : isAvailable
@@ -463,9 +481,7 @@ export default function ScanResult({ route }) {
                             styles.unavailableButton,
                         ]}
                         onPress={() => handleSessionScan(session._id)}
-                        disabled={
-                          !isAvailable || isSessionScanned
-                        }
+                        disabled={!isAvailable || isSessionScanned}
                       >
                         <LinearGradient
                           colors={
@@ -483,7 +499,7 @@ export default function ScanResult({ route }) {
                               : !isAvailable
                                 ? "Not Available"
                                 : `Enter Session (${remainingScans})`}
-                          </Text> 
+                          </Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     )}
@@ -510,6 +526,18 @@ export default function ScanResult({ route }) {
                         {session.sessionLocation || "N/A"}
                       </Text>
                     </View>
+                    {participantData.data.sessionScan
+                      .filter(
+                        (scan) => scan.exhibitionSessionId === session._id
+                      )
+                      .map((scan) => (
+                        <View key={scan._id} style={styles.scanTimeCard}>
+                          <Icon name="history" size={16} color="#FFFFFF" />
+                          <Text style={styles.scannedText}>
+                            Scanned at : {formatFullDateTime(scan.createdAt)}
+                          </Text>
+                        </View>
+                      ))}
                   </View>
                 </View>
               </LinearGradient>
@@ -542,7 +570,9 @@ export default function ScanResult({ route }) {
           <View style={styles.invalidQRContainer}>
             <Icon name="error-outline" size={80} color="#FFA000" />
             <Text style={styles.invalidQRText}>Invalid QR Code</Text>
-            <Text style={styles.invalidQRSubtext}>Please try scanning a valid QR code</Text>
+            <Text style={styles.invalidQRSubtext}>
+              Please try scanning a valid QR code
+            </Text>
             <TouchableOpacity
               style={styles.scanAgainButton}
               onPress={() => navigation.navigate("Scanner")}
@@ -925,32 +955,50 @@ const styles = StyleSheet.create({
   },
   invalidQRContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   invalidQRText: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginTop: 20,
   },
   invalidQRSubtext: {
     fontSize: 16,
-    color: '#CCCCCC',
+    color: "#CCCCCC",
     marginTop: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   scanAgainButton: {
-    backgroundColor: '#0E7AFE',
+    backgroundColor: "#0E7AFE",
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 8,
     marginTop: 30,
   },
   scanAgainButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
+  },
+  scannedText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    opacity: 0.8,
+    fontFamily: "Poppins-Regular",
+    marginLeft: 8,
+  },
+  scanTimeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
 });

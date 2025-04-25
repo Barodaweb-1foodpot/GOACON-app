@@ -25,6 +25,19 @@ import { markParticipantEntered } from "../api/eventApi";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+const formatFullDateTime = (dateString) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  return date.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 export default function Participants() {
   const { user, userType, selectedEventPartner } = useAuthContext();
   const navigation = useNavigation();
@@ -337,9 +350,12 @@ export default function Participants() {
               );
               try {
                 // Mark participant as entered
-                const response = await markParticipantEntered(participantId, eventValue);
+                const response = await markParticipantEntered(
+                  participantId,
+                  eventValue
+                );
                 console.log("Scan response:", response);
-                
+
                 // Update UI immediately for better responsiveness
                 setParticipants((prev) =>
                   prev.map((p) =>
@@ -752,6 +768,8 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
 
   const isScanned = Boolean(participant.registrationScan);
 
+  console.log("participant >>>>>>>>> ", participant);
+
   return (
     <TouchableOpacity
       style={[styles.card, isScanned && styles.scannedCard]}
@@ -793,11 +811,14 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
           </Text>
         </View>
 
-        {isScanned && participant.scannedAt && (
+        {isScanned && participant.registrationScan && (
           <View style={styles.infoRow}>
             <Icon name="schedule" size={20} color="#4CAF50" />
             <Text style={[styles.infoText, styles.scannedText]}>
-              {formatDate(participant.scannedAt)}
+              Entered at :{" "}
+              {formatFullDateTime(
+                participant.registrationScanDetails[0]?.createdAt
+              )}
             </Text>
           </View>
         )}

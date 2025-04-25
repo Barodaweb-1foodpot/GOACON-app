@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bweb Partners",
     "slug": "eventPartner_app",
-    "version": "0.0.3",
+    "version": "0.0.5",
     "orientation": "portrait",
     "icon": "./assets/Bweb-removebg.png",
     "userInterfaceStyle": "light",

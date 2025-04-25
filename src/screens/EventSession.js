@@ -26,6 +26,19 @@ import { useAuthContext } from "../context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
+const formatFullDateTime = (dateString) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  return date.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 export default function EventSession({ route, navigation }) {
   const { participant } = route.params;
   const [isLoading, setIsLoading] = useState(true);
@@ -44,8 +57,8 @@ export default function EventSession({ route, navigation }) {
       setIsLoading(true);
       console.log("Participant ID:", participant._id);
       const response = await fetchParticipantDetail(participant._id);
-      console.log("API Response:", JSON.stringify(response, null, 2));
-      
+      console.log("API Response:", JSON.stringify(response));
+
       if (response && response.data) {
         setEventDetails(response.data);
         // Check if sessiondata exists in the response
@@ -164,6 +177,15 @@ export default function EventSession({ route, navigation }) {
             {formatDate(eventDetails?.exhibitionId?.endTime)}
           </Text>
         </View>
+
+        {eventDetails?.registrationScan && (
+          <View style={styles.infoRow}>
+            <Text style={[styles.eventDate, styles.scannedText]}>
+              Entered at :{" "}
+              {formatFullDateTime(eventDetails?.registrationScan?.createdAt)}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -202,10 +224,12 @@ export default function EventSession({ route, navigation }) {
 
         // Just three colors for status
         const statusColor = isScanned
-          ? "#4CAF50"  // Green for scanned
+          ? "#4CAF50" // Green for scanned
           : isActive
-            ? "#FFA000"  // Orange for active (regardless of partial scan)
-            : "#9E9E9E";  // Grey for upcoming
+            ? "#FFA000" // Orange for active (regardless of partial scan)
+            : "#9E9E9E"; // Grey for upcoming
+
+        console.log("session >>>>>>>>> ", eventDetails.sessionScan);
 
         return (
           <View
@@ -244,9 +268,7 @@ export default function EventSession({ route, navigation }) {
                       isScanned && styles.scannedButton,
                       !isActive && styles.unavailableButton,
                     ]}
-                    onPress={() =>
-                      handleSessionScan(session._id)
-                    }
+                    onPress={() => handleSessionScan(session._id)}
                     disabled={isScanned || !isActive}
                   >
                     <LinearGradient
@@ -266,7 +288,7 @@ export default function EventSession({ route, navigation }) {
                             ? "Not Available"
                             : remainingScans !== undefined
                               ? `Enter Session (${remainingScans})`
-                              : "Enter Session"} 
+                              : "Enter Session"}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -294,6 +316,17 @@ export default function EventSession({ route, navigation }) {
                     {session.sessionLocation || "N/A"}
                   </Text>
                 </View>
+
+                {eventDetails.sessionScan
+                  .filter((scan) => scan.exhibitionSessionId === session._id)
+                  .map((scan) => (
+                    <View key={scan._id} style={styles.scanTimeCard}>
+                      <Icon name="schedule" size={16} color="#FFFFFF" />
+                      <Text style={styles.scannedText}>
+                        Scanned at : {formatFullDateTime(scan.createdAt)}
+                      </Text>
+                    </View>
+                  ))}
               </View>
             </View>
           </View>
@@ -343,6 +376,18 @@ export default function EventSession({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  scannedText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    opacity: 0.9,
+    fontFamily: "Poppins-Regular",
+    marginLeft: 8,
+  },
   container: {
     flex: 1,
   },
@@ -556,5 +601,15 @@ const styles = StyleSheet.create({
   },
   unavailableButton: {
     backgroundColor: "#9E9E9E",
+  },
+  scanTimeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(25, 60, 100, 0.8)",
+    marginTop: 10,
+    marginBottom: 4,
+    width: "100%",
   },
 });

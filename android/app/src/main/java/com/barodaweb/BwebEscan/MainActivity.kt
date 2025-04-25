@@ -1,4 +1,4 @@
-package com.wa2goose.ExpoQR2
+package com.barodaweb.BwebEscan
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
