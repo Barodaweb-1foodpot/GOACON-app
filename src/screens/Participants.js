@@ -817,7 +817,8 @@ const ParticipantCard = React.memo(({ participant, onPress, navigation }) => {
             <Text style={[styles.infoText, styles.scannedText]}>
               Entered at :{" "}
               {formatFullDateTime(
-                participant.registrationScanDetails[0]?.createdAt
+                participant.registrationScanDetails[0]?.createdAt ||
+                  participant.scannedAt
               )}
             </Text>
           </View>
